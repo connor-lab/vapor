@@ -1,3 +1,10 @@
+import sys
+from Bio import SeqIO
+import numpy as np
+import math
+import random
+import argparse
+
 class wDBG():
     # DBG with additional weights on each edge
     def __init__(self, strings, k):
@@ -147,7 +154,11 @@ class cDBG():
             z += 1
         sys.stderr.write("\n")
 
-    def classify(self, wdbg):
+    def classify(self, wdbg, seqs):
+
+        ## Note - Previously seqs arg was not specified but was being used below to define sumo variable from main
+        # not sure if you realised this or not
+
         # First build a dbg, second find shortest path in it, thirdly parse the color information
 #        wdbg = wDBG(reads, self.k)
         paths = wdbg.get_paths()
@@ -194,44 +205,87 @@ def kmer_prefilter(reads, filterkmers, threshold, k=21):
             if prop > threshold:
                 yield r
 
- 
-if __name__ == "__main__":
-    import sys
-    from Bio import SeqIO
-    import numpy as np
-    import math
-    import random
+def choose_paths(paths):
+    maxi = max(paths, key=lambda x: x[1])[1]
+    for path in paths:
+        if path[1] == maxi:
+            yield path
+
+def main():
+
     random.seed(100)
 
-    def choose_paths(paths):
-        maxi = max(paths, key = lambda x:x[1])[1]
-        for path in paths:
-            if path[1] == maxi:
-                yield path
-        
     sys.stderr.write("Loading sequences\n")
+
     seqsr = [r for r in SeqIO.parse(sys.argv[3], "fasta")]
     seqs = [str(r.seq) for r in seqsr]
     seqsh = [r.description for r in seqsr]
+
     K = int(sys.argv[1])
     score_threshold = float(sys.argv[2])
+
     reads = []
     for f in sys.argv[4:]:
         reads += [str(r.seq) for r in SeqIO.parse(f, "fastq")]
 
     sys.stderr.write("Prefiltering reads and taking revComp where necessary\n")
+
     dbkmers = get_kmers(seqs, K)
-    reads = [r for r in kmer_prefilter(reads, dbkmers, score_threshold)]
-    sys.stderr.write(str(len(reads)) +  " survived\n")
+    reads = [r for r in kmer_prefilter(reads, dbkmers, score_threshold, K)]
+    sys.stderr.write(str(len(reads)) + " survived\n")
+
     if len(reads) == 0:
         sys.stderr.write("Exiting. Is there any virus in your sequences? Try a lower filtering threshold.\n")
         sys.exit()
+
     # prefilter
     wdbg = wDBG(reads, K)
     cdbg = cDBG.from_strings_and_subgraph(seqs, K, wdbg)
-    cls = cdbg.classify(wdbg)
+
+    ### not sure if you want seqs below?
+    cls = cdbg.classify(wdbg, seqs)
+
     for c in cls:
-        print(len(reads),c,seqsh[c])
+        print(len(reads), c, seqsh[c])
+
+
+parser = argparse.ArgumentParser(description="Do some sweet viral classification")
+group = parser.add_mutually_exclusive_group()
+group.add_argument("-v", "--verbose", action="store_true")
+group.add_argument("-q", "--quiet", action="store_true")
+parser.add_argument("Kmer", type=int, help="Kmer Length")
+parser.add_argument("Score_thres", type=float, help="Score thresehold")
+parser.add_argument("Fasta", type=str, help="Fasta file")
+parser.add_argument("Fastq", type=str, help="Fastq file")
+
+if len(sys.argv)==1:
+    parser.print_help(sys.stderr)
+    sys.exit(1)
+
+args = parser.parse_args()
+
+if args.quiet:
+    # Do something
+    print (str("WTF"))
+    main()
+elif args.verbose:
+    # Do something else
+    answer = "YOLO FOOL"
+    print ("{} is the name of the game and the answer is {} ({})".format(args.Fasta, args.Fastq, answer))
+    main()
+else:
+    # Still do something
+    answer = "YOLO FOOL"
+    print ("{} is way better than {} but make sure you {}".format(args.Fasta, args.Fastq, answer))
+    main()
+
+
+
+
+
+
+
+
 #    for i in range(200):
 #        roll = random.randint(0,len(seqs)-1)
 #        ref = seqs[roll]
