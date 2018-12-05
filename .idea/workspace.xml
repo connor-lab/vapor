@@ -14,8 +14,8 @@
       <file leaf-file-name="bit_vapor_prefilter.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/bit_vapor_prefilter.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-203">
-              <caret line="243" column="0" lean-forward="true" selection-start-line="243" selection-start-column="0" selection-end-line="243" selection-end-column="0" />
+            <state relative-caret-position="168">
+              <caret line="8" column="13" lean-forward="true" selection-start-line="8" selection-start-column="13" selection-end-line="8" selection-end-column="13" />
               <folding>
                 <element signature="e#0#10#0" expanded="true" />
               </folding>
@@ -27,8 +27,10 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>classify</find>
       <find>choose_paths</find>
+      <find>wDBG</find>
+      <find>classify</find>
+      <find>from_strings_and_subgraph</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -145,14 +147,16 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="XDebuggerManager">
-    <breakpoint-manager />
+    <breakpoint-manager>
+      <option name="time" value="1" />
+    </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/bit_vapor_prefilter.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-203">
-          <caret line="243" column="0" lean-forward="true" selection-start-line="243" selection-start-column="0" selection-end-line="243" selection-end-column="0" />
+        <state relative-caret-position="168">
+          <caret line="8" column="13" lean-forward="true" selection-start-line="8" selection-start-column="13" selection-end-line="8" selection-end-column="13" />
           <folding>
             <element signature="e#0#10#0" expanded="true" />
           </folding>

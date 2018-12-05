@@ -4,6 +4,7 @@ import numpy as np
 import math
 import random
 import argparse
+import os
 
 class wDBG():
     # DBG with additional weights on each edge
@@ -14,6 +15,7 @@ class wDBG():
         self._build(strings)
 
     def _build(self, strings):
+
         sys.stderr.write("Building wDBG\n")
         for si, string in enumerate(strings):
             sys.stderr.write(str(si) + "             \r")
@@ -154,13 +156,17 @@ class cDBG():
             z += 1
         sys.stderr.write("\n")
 
-    def classify(self, wdbg, seqs):
+    def classify(self, wdbg, seqs, verbose):
 
         ## Note - Previously seqs arg was not specified but was being used below to define sumo variable from main
         # not sure if you realised this or not
 
         # First build a dbg, second find shortest path in it, thirdly parse the color information
 #        wdbg = wDBG(reads, self.k)
+
+        if not verbose:
+            blockPrint()
+
         paths = wdbg.get_paths()
         lens = [len(p) for p in paths]
         scores = [p[1] for p in paths]
@@ -211,52 +217,70 @@ def choose_paths(paths):
         if path[1] == maxi:
             yield path
 
-def main():
+def blockPrint():
+    sys.stdout = open(os.devnull, 'w')
+
+# Restore
+def enablePrint():
+    sys.stdout = sys.__stdout__
+
+def main(quiet, verbose, K, score_threshold, fasta, fastq):
 
     random.seed(100)
 
+    ## maybe something like this if you can be bothered.
+    if quiet:
+        blockPrint()
+
     sys.stderr.write("Loading sequences\n")
 
-    seqsr = [r for r in SeqIO.parse(sys.argv[3], "fasta")]
+    seqsr = [r for r in SeqIO.parse(fasta, "fasta")]
     seqs = [str(r.seq) for r in seqsr]
     seqsh = [r.description for r in seqsr]
 
-    K = int(sys.argv[1])
-    score_threshold = float(sys.argv[2])
+    #K = int(sys.argv[1])
+    #score_threshold = float(sys.argv[2])
 
     reads = []
-    for f in sys.argv[4:]:
+    for f in fastq:
         reads += [str(r.seq) for r in SeqIO.parse(f, "fastq")]
 
     sys.stderr.write("Prefiltering reads and taking revComp where necessary\n")
 
     dbkmers = get_kmers(seqs, K)
     reads = [r for r in kmer_prefilter(reads, dbkmers, score_threshold, K)]
+
     sys.stderr.write(str(len(reads)) + " survived\n")
 
     if len(reads) == 0:
+        enablePrint()
         sys.stderr.write("Exiting. Is there any virus in your sequences? Try a lower filtering threshold.\n")
-        sys.exit()
+        sys.exit(1)
 
     # prefilter
     wdbg = wDBG(reads, K)
     cdbg = cDBG.from_strings_and_subgraph(seqs, K, wdbg)
 
     ### not sure if you want seqs below?
-    cls = cdbg.classify(wdbg, seqs)
+    cls = cdbg.classify(wdbg, seqs, verbose)
 
     for c in cls:
         print(len(reads), c, seqsh[c])
 
+    sys.stderr.write("\nClassification Complete\n")
+
+
+##### Command line Interface
 
 parser = argparse.ArgumentParser(description="Do some sweet viral classification")
 group = parser.add_mutually_exclusive_group()
 group.add_argument("-v", "--verbose", action="store_true")
 group.add_argument("-q", "--quiet", action="store_true")
-parser.add_argument("Kmer", type=int, help="Kmer Length")
-parser.add_argument("Score_thres", type=float, help="Score thresehold")
-parser.add_argument("Fasta", type=str, help="Fasta file")
-parser.add_argument("Fastq", type=str, help="Fastq file")
+
+parser.add_argument("-k", type=int, help="Kmer Length")
+parser.add_argument("-s", type=float, help="Score threshold")
+parser.add_argument("-fa", type=str, help="Fasta file")
+parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
 
 if len(sys.argv)==1:
     parser.print_help(sys.stderr)
@@ -264,21 +288,38 @@ if len(sys.argv)==1:
 
 args = parser.parse_args()
 
-if args.quiet:
-    # Do something
-    print (str("WTF"))
-    main()
-elif args.verbose:
-    # Do something else
-    answer = "YOLO FOOL"
-    print ("{} is the name of the game and the answer is {} ({})".format(args.Fasta, args.Fastq, answer))
-    main()
-else:
-    # Still do something
-    answer = "YOLO FOOL"
-    print ("{} is way better than {} but make sure you {}".format(args.Fasta, args.Fastq, answer))
-    main()
+## set thresholds for user input
+max_kmer = 30
+min_kmer = 15
+max_thres = 1
+min_thres = 0
 
+if args.fa.endswith(('.fa', '.fasta')):
+    fastq_list = [fq for fq in args.fq if not fq.endswith(('.fq', '.fastq'))]
+    if len(fastq_list) == 0:
+        if args.k < max_kmer and args.k > min_kmer:
+            if args.s < max_thres and args.s > min_thres:
+
+                ###########Run main
+                main(args.quiet, args.verbose, args.k, args.s, args.fa, args.fq)
+
+            else:
+                sys.stderr.write("\nPlease input correct score threshold ({} to {}) \n \n".format(min_thres, max_thres))
+                parser.print_help(sys.stderr)
+                sys.exit(1)
+        else:
+            sys.stderr.write("\nPlease input correct kmer length ({} to {}) \n \n".format(min_kmer, max_kmer))
+            parser.print_help(sys.stderr)
+            sys.exit(1)
+    else:
+        sys.stderr.write(
+            "\nPlease supply fastq files as directed: {} is not in the correct format \n \n".format(args.fq))
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+else:
+    sys.stderr.write("\nPlease supply fasta file as directed: {} is not in the correct format \n \n".format(args.fa))
+    parser.print_help(sys.stderr)
+    sys.exit(1)
 
 
 
