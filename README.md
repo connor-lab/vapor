@@ -3,7 +3,7 @@
 usage: bit_vapor_prefilter.py [-h] [-v | -q] [-k K] [-s S] [-fa FA]
                               [-fq FQ [FQ ...]]
 
-Do some sweet viral classification
+Do some viral classification!
 
 optional arguments:
   -h, --help       show this help message and exit
