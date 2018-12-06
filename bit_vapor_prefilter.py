@@ -1,10 +1,7 @@
 import sys
-from Bio import SeqIO
 import numpy as np
-import math
 import random
 import argparse
-import copy
 import os
 
 class Path():
@@ -126,7 +123,6 @@ class wDBG():
                         tmpkmer = path.path[-1][1:] + b
                         if tmpkmer in self.edges:
                             tmp_additions[b] = self.edges[tmpkmer]
-#                            tmp_path = copy.deepcopy(path)
 #                            tmp_path.add_edge(tmpkmer, self.edges[tmpkmer])
     #                        tmp_path[0] = tmp_path[0] + b
     #                        tmp_path[1] += self.edges[tmpkmer]
@@ -327,9 +323,6 @@ def main(quiet, K, score_threshold, fasta, fastqs):
     sys.stderr.write("Loading database sequences\n")
     seqsh, seqs = parse_fasta_uniq(fasta)
     sys.stderr.write("Got %d unique sequences\n" % len(seqs))
-#    seqsr = [r for r in SeqIO.parse(fasta, "fasta")]
-#    seqs = [str(r.seq) for r in seqsr]
-#    seqsh = [r.description for r in seqsr]
 
     sys.stderr.write("Getting database kmers\n")
     dbkmers = get_kmers(seqs, K)
