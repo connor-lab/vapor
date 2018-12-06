@@ -4,8 +4,44 @@ import numpy as np
 import math
 import random
 import argparse
+import copy
 import os
 
+class Path():
+    def __init__(self, start_edge, start_score):
+        self.edges = {start_edge}
+        self.path = [start_edge]
+        self.score = start_score
+        self.cyclic = False
+    def add_edge(self, edge, score):
+        if edge in self.edges:
+            self.cyclic = True
+        self.edges.add(edge)
+        self.path.append(edge)
+        self.score += score
+    def get_string(self):
+        s = self.path[0]
+        for edge in self.path[1:]:
+            s += edge[-1]
+        return s
+
+def remove_overlaps(paths):
+    # Greedy approach to resolving overlaps
+    flagarr = [0 for p in paths]
+    for i in range(len(paths)-1):
+        for j in range(i+1, len(paths)):
+            pi = paths[i]
+            pj = paths[j]
+            if len(pi.edges | pj.edges) > 0:
+                if pi.score > pj.score:
+                # The paths overlap at at least one kmer
+                    flagarr[j] = 1
+                else:
+                    flagarr[i] = 1
+    for i in range(len(flagarr)):
+        if flagarr[i] == 0:
+            yield paths[i]
+ 
 class wDBG():
     # DBG with additional weights on each edge
     def __init__(self, strings, k):
@@ -17,13 +53,16 @@ class wDBG():
     def _build(self, strings):
 
         sys.stderr.write("Building wDBG\n")
+        newkmerc = 0
         for si, string in enumerate(strings):
-            sys.stderr.write(str(si) + "             \r")
+            sys.stderr.write(str(si) + "      \r")
             kmers = [string[i:i+self.k] for i in range(len(string)-self.k+1)]
+            newkmerc = 0
             for kmer in kmers:
                 if kmer in self.edges:
                     self.edges[kmer] += 1
                 else:
+                    newkmerc += 1
                     self.edges[kmer] = 1
             # Add the first kmer to start positions, since they can represent the start of biological sequences
 #            start = string[:self.k]
@@ -55,45 +94,63 @@ class wDBG():
                  n += 1
         return n
 
+    def cull(self, kmers):
+        todel = []
+        for kmer in self.edges:
+            if kmer not in kmers:
+                todel.append(kmer)
+        for kmer in todel:
+            if kmer not in self.start_positions:
+                del self.edges[kmer]
+
     def get_paths(self):
-        paths = [[p, self.edges[p]] for p in self.start_positions]
-        pstrings = [p[0] for p in paths]
+        paths = [Path(p, self.edges[p]) for p in self.start_positions]
+        pstrings = [p.get_string() for p in paths]
         assert len(pstrings) == len(set(pstrings))
         final_paths = []
         sys.stderr.write("Building paths, from %d start points\n" % len(paths))
+        tmp_paths = []
         while paths != []:
             switch = True
+            assert len(paths) + len(final_paths) == len(self.start_positions)
             tmp_paths = []
             for path in paths:
-                assert paths.count(path) == 1
-                localswitch = False
-                best_tmps = []
-                for b in "ATCG":
-                    tmpkmer = path[0][-self.k+1:] + b
-                    if tmpkmer in self.edges:
-                        tmp_path = [path[0], path[1]]
-                        tmp_path[0] = tmp_path[0] + b
-                        tmp_path[1] += self.edges[tmpkmer]
-#                        tmp_paths.append(tmp_path)
-                        best_tmps.append(tmp_path)
-                        localswitch = True
-                if localswitch == True:
-                    # Never a tie at a branch! Assert it
-                    maxtmp = max(best_tmps, key = lambda x:x[1])[1]
-                    maxtmps = [t for t in best_tmps if t[1] == maxtmp]
-    #                assert len(maxtmps) == 1
-                    best_tmp = maxtmps[0]
-    #                if best_tmp not in tmp_paths:
-                    tmp_paths.append(best_tmp)
-                else:
+                if path.cyclic == True:
                     final_paths.append(path)
+                    print("cycling")
+                else:
+                    assert paths.count(path) == 1
+                    localswitch = False
+                    tmp_additions = {}
+                    for b in "ATCG":
+                        tmpkmer = path.path[-1][1:] + b
+                        if tmpkmer in self.edges:
+                            tmp_additions[b] = self.edges[tmpkmer]
+#                            tmp_path = copy.deepcopy(path)
+#                            tmp_path.add_edge(tmpkmer, self.edges[tmpkmer])
+    #                        tmp_path[0] = tmp_path[0] + b
+    #                        tmp_path[1] += self.edges[tmpkmer]
+    #                        tmp_paths.append(tmp_path)
+#                            best_tmps.append(tmp_path)
+                            localswitch = True
+                    if localswitch == True:
+                        # Never a tie at a branch! Assert it
+                        maxtmp = max(tmp_additions.items(), key = lambda x:x[1])[1]
+                        maxtmps = [t[0] for t in tmp_additions.items() if t[1] == maxtmp]
+                        best_tmp = maxtmps[0]
+                        path.add_edge(path.path[-1][1:]+best_tmp, maxtmp)
+                        tmp_paths.append(path)
+                    else:
+                        final_paths.append(path)                
+            paths = tmp_paths
+
             # For our heuristic walk, we cant haave more paths than starts
             assert len(tmp_paths) <= len(paths)
             assert len(paths) <= len(self.start_positions)
             paths = tmp_paths
-            sys.stderr.write("%d %d             \r" % (len(final_paths), len(tmp_paths)))
+            sys.stderr.write("%d             \r" % (len(final_paths)))
         sys.stderr.write("\n")
-        return final_paths           
+        return final_paths          
 
 class cDBG():
     def __init__(self, k):
@@ -156,7 +213,7 @@ class cDBG():
             z += 1
         sys.stderr.write("\n")
 
-    def classify(self, wdbg, seqs, verbose):
+    def classify(self, wdbg, seqs):
 
         ## Note - Previously seqs arg was not specified but was being used below to define sumo variable from main
         # not sure if you realised this or not
@@ -164,16 +221,11 @@ class cDBG():
         # First build a dbg, second find shortest path in it, thirdly parse the color information
 #        wdbg = wDBG(reads, self.k)
 
-        if not verbose:
-            blockPrint()
-
         paths = wdbg.get_paths()
-        lens = [len(p) for p in paths]
-        scores = [p[1] for p in paths]
-        pathseqs = [p[0] for p in paths]
-        maxpath = max(paths, key = lambda x:x[1])
+        paths = remove_overlaps(paths)
         colors = []
-        for seq in [maxpath[0]]:
+        for path in paths:
+            seq = path.get_string()
             kmers = (seq[i:i+self.k] for i in range(len(seq)))
             for kmer in kmers:
                 if kmer in self.edges:
@@ -187,7 +239,7 @@ class cDBG():
 
         maxi = max(sumo)
         maxs = [len(sumo)-i-1 for i in range(len(sumo)) if sumo[i] == maxi]
-        return maxs
+        return (maxs, maxi)
 
 def get_kmers(strings,k):
     kmers = set()
@@ -203,13 +255,46 @@ def rev_comp(read):
     read = read.replace("G", "c")
     return read.upper()[::-1]
 
-def kmer_prefilter(reads, filterkmers, threshold, k=21):
-    for raw_read in reads:
-        for r in [raw_read, rev_comp(raw_read)]:
-            kmers = set([r[i:i+k] for i in range(len(r))])
-            prop = float(len(kmers & filterkmers)) / len(r)
-            if prop > threshold:
-                yield r
+def parse_and_prefilter(fqs, dbkmers, threshold, k):
+    c = 0
+    M = float(len(dbkmers))
+    for fq in fqs:
+        with open(fq) as f:
+            for line in f:
+                if c == 1:
+                    tmpseq = line.strip()
+                    kcount = 0
+                    for i in range(0, len(tmpseq), k):
+                        if tmpseq[i:i+k] in dbkmers:
+                            kcount += 1
+                    if k*kcount/M < threshold:
+                        yield tmpseq
+                c += 1                  
+                if c == 4:
+                    c = 0
+
+def parse_fasta_uniq(fasta, filter_Ns=True):
+    tmph = ""
+    tmps = ""
+    hs = []
+    ss = []
+    sseen = set()
+    with open(fasta) as f:
+        for line in f:
+            l = line.strip()
+            if l[0] == ">":
+                if tmps not in sseen:
+                    if ((filter_Ns == True) and "N" not in tmps) or filter_Ns == False:
+                        hs.append(tmph)
+                        ss.append(tmps) 
+                        sseen.add(tmps)
+                tmph = l
+                tmps = ""
+            else:
+                tmps += l
+    hs.append(tmph)
+    ss.append(tmps)
+    return hs, ss 
 
 def choose_paths(paths):
     maxi = max(paths, key=lambda x: x[1])[1]
@@ -217,40 +302,42 @@ def choose_paths(paths):
         if path[1] == maxi:
             yield path
 
-def blockPrint():
-    sys.stdout = open(os.devnull, 'w')
+def subsample(reads, n):
+    if n >= len(reads):
+        return reads
+    else:
+        return random.sample(reads, n)
+    
+
+def blockErr():
+    sys.stderr = open(os.devnull, 'w')
 
 # Restore
 def enablePrint():
     sys.stdout = sys.__stdout__
 
-def main(quiet, verbose, K, score_threshold, fasta, fastq):
+def main(quiet, K, score_threshold, fasta, fastqs):
 
     random.seed(100)
 
     ## maybe something like this if you can be bothered.
     if quiet:
-        blockPrint()
+        blockErr()
 
-    sys.stderr.write("Loading sequences\n")
+    sys.stderr.write("Loading database sequences\n")
+    seqsh, seqs = parse_fasta_uniq(fasta)
+    sys.stderr.write("Got %d unique sequences\n" % len(seqs))
+#    seqsr = [r for r in SeqIO.parse(fasta, "fasta")]
+#    seqs = [str(r.seq) for r in seqsr]
+#    seqsh = [r.description for r in seqsr]
 
-    seqsr = [r for r in SeqIO.parse(fasta, "fasta")]
-    seqs = [str(r.seq) for r in seqsr]
-    seqsh = [r.description for r in seqsr]
-
-    #K = int(sys.argv[1])
-    #score_threshold = float(sys.argv[2])
-
-    reads = []
-    for f in fastq:
-        reads += [str(r.seq) for r in SeqIO.parse(f, "fastq")]
-
-    sys.stderr.write("Prefiltering reads and taking revComp where necessary\n")
-
+    sys.stderr.write("Getting database kmers\n")
     dbkmers = get_kmers(seqs, K)
-    reads = [r for r in kmer_prefilter(reads, dbkmers, score_threshold, K)]
 
-    sys.stderr.write(str(len(reads)) + " survived\n")
+    sys.stderr.write("Filtering reads\n")
+    reads = [r for r in parse_and_prefilter(fastqs, dbkmers, score_threshold, K)]
+    reads = subsample(reads, 5000)
+    sys.stderr.write(str(len(reads)) + " reads survived\n")
 
     if len(reads) == 0:
         enablePrint()
@@ -259,13 +346,16 @@ def main(quiet, verbose, K, score_threshold, fasta, fastq):
 
     # prefilter
     wdbg = wDBG(reads, K)
+    # cull any kmers that are not present in the reference kmers; these do not give additional information
+    sys.stderr.write("Culling kmers\n")
+    wdbg.cull(dbkmers)
+
     cdbg = cDBG.from_strings_and_subgraph(seqs, K, wdbg)
 
     ### not sure if you want seqs below?
-    cls = cdbg.classify(wdbg, seqs, verbose)
-
+    cls,score = cdbg.classify(wdbg, seqs)
     for c in cls:
-        print(len(reads), c, seqsh[c])
+        print(seqsh[c]+","+str(score))
 
     sys.stderr.write("\nClassification Complete\n")
 
@@ -274,7 +364,6 @@ def main(quiet, verbose, K, score_threshold, fasta, fastq):
 
 parser = argparse.ArgumentParser(description="Do some sweet viral classification")
 group = parser.add_mutually_exclusive_group()
-group.add_argument("-v", "--verbose", action="store_true")
 group.add_argument("-q", "--quiet", action="store_true")
 
 parser.add_argument("-k", type=int, help="Kmer Length")
@@ -290,61 +379,20 @@ args = parser.parse_args()
 
 ## set thresholds for user input
 max_kmer = 30
-min_kmer = 15
+min_kmer = 2
 max_thres = 1
 min_thres = 0
 
-if args.fa.endswith(('.fa', '.fasta')):
-    fastq_list = [fq for fq in args.fq if not fq.endswith(('.fq', '.fastq'))]
-    if len(fastq_list) == 0:
-        if args.k < max_kmer and args.k > min_kmer:
-            if args.s < max_thres and args.s > min_thres:
+if args.k < max_kmer and args.k > min_kmer:
+    if args.s < max_thres and args.s > min_thres:
+        ###########Run main
+        main(args.quiet, args.k, args.s, args.fa, args.fq)
 
-                ###########Run main
-                main(args.quiet, args.verbose, args.k, args.s, args.fa, args.fq)
-
-            else:
-                sys.stderr.write("\nPlease input correct score threshold ({} to {}) \n \n".format(min_thres, max_thres))
-                parser.print_help(sys.stderr)
-                sys.exit(1)
-        else:
-            sys.stderr.write("\nPlease input correct kmer length ({} to {}) \n \n".format(min_kmer, max_kmer))
-            parser.print_help(sys.stderr)
-            sys.exit(1)
     else:
-        sys.stderr.write(
-            "\nPlease supply fastq files as directed: {} is not in the correct format \n \n".format(args.fq))
+        sys.stderr.write("\nPlease input correct score threshold ({} to {}) \n \n".format(min_thres, max_thres))
         parser.print_help(sys.stderr)
         sys.exit(1)
 else:
-    sys.stderr.write("\nPlease supply fasta file as directed: {} is not in the correct format \n \n".format(args.fa))
+    sys.stderr.write("\nPlease input correct kmer length ({} to {}) \n \n".format(min_kmer, max_kmer))
     parser.print_help(sys.stderr)
     sys.exit(1)
-
-
-
-
-
-
-
-#    for i in range(200):
-#        roll = random.randint(0,len(seqs)-1)
-#        ref = seqs[roll]
-#        quasispecies = generate_quasispecies(ref, 10, 0.01)
-#        reads = readize(quasispecies)
-#        wdbg = wDBG(reads, K)
-#        print("nreads", len(reads), nmut)
-#        print("nbranches", wdbg.get_n_branches())
-#        paths = wdbg.get_paths()
-#        best_paths = choose_paths(paths)
-#        path_kmers = set()
-#        print()
-#        for path in best_paths:
-#            print(path)
-#            pkmers = [path[0][i:i+K-1] for i in range(len(path[0])-K+2)]
-#            for kmer in pkmers:
-#                path_kmers.add(kmer)
-#        print(len(reads), len(wdbg.edges))
-#        dbgplotter.plot_dbg(wdbg, path_kmers)
-#        cls = cdbg.classify(reads)
-#        print(roll, cls, roll in cls)
