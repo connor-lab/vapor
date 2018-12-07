@@ -72,7 +72,6 @@ class wDBG():
                     edge = False
             if edge == True:
                 self.start_positions.add(kmer)
-        sys.stderr.write("\n")
 
     def get_n_branches(self):
         nodes = {}
@@ -349,17 +348,11 @@ def main(quiet, K, score_threshold, subsample_amount, fasta, fastqs):
     wdbg = wDBG(reads, K)
     # cull any kmers that are not present in the reference kmers; these do not give additional information
     sys.stderr.write("Culling kmers\n")
-    mew = max(wdbg.edges.items(), key = lambda x : x[1])[1]
-    assert mew > 1
     wdbg.cull(dbkmers)
     sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
-    print(wdbg.edges)
-    mew = max(wdbg.edges.items(), key = lambda x : x[1])[1]
-    assert mew > 1
     sys.stderr.write("Getting start positions\n")
     wdbg.get_start_positions()
     mew = max(wdbg.edges.items(), key = lambda x : x[1])[1]
-    assert mew > 1
     sys.stderr.write("Largest edge weight: %d \n" % mew)
 
     cdbg = cDBG.from_strings_and_subgraph(seqs, K, wdbg)
