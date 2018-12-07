@@ -257,6 +257,7 @@ def rev_comp(read):
 def parse_and_prefilter(fqs, dbkmers, threshold, k):
     c = 0
     M = float(len(dbkmers))
+    seen = set()
     for fq in fqs:
         with open(fq) as f:
             for line in f:
@@ -265,7 +266,8 @@ def parse_and_prefilter(fqs, dbkmers, threshold, k):
                     kcount = 0
                     # Don't allow Ns in read
                     # Don't allow reads < k
-                    if "N" not in tmpseq and len(tmpseq) >= k:
+                    if "N" not in tmpseq and len(tmpseq) >= k and tmpseq not in seen:
+                        seen.add(tmpseq)
                         for i in range(0, len(tmpseq), k):
                             if tmpseq[i:i+k] in dbkmers:
                                 kcount += 1
@@ -347,11 +349,17 @@ def main(quiet, K, score_threshold, subsample_amount, fasta, fastqs):
     wdbg = wDBG(reads, K)
     # cull any kmers that are not present in the reference kmers; these do not give additional information
     sys.stderr.write("Culling kmers\n")
+    mew = max(wdbg.edges.items(), key = lambda x : x[1])[1]
+    assert mew > 1
     wdbg.cull(dbkmers)
+    sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
+    print(wdbg.edges)
+    mew = max(wdbg.edges.items(), key = lambda x : x[1])[1]
+    assert mew > 1
     sys.stderr.write("Getting start positions\n")
     wdbg.get_start_positions()
-    sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
     mew = max(wdbg.edges.items(), key = lambda x : x[1])[1]
+    assert mew > 1
     sys.stderr.write("Largest edge weight: %d \n" % mew)
 
     cdbg = cDBG.from_strings_and_subgraph(seqs, K, wdbg)
