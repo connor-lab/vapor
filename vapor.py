@@ -319,7 +319,7 @@ def blockErr():
 def enablePrint():
     sys.stdout = sys.__stdout__
 
-def main(quiet, K, score_threshold, subsample_amount, fasta, fastqs):
+def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs):
 
     random.seed(100)
 
@@ -360,7 +360,11 @@ def main(quiet, K, score_threshold, subsample_amount, fasta, fastqs):
     ### not sure if you want seqs below?
     cls,score = cdbg.classify(wdbg, seqs)
     for c in cls:
-        print(seqsh[c]+","+str(score))
+        if return_seqs == True:
+            print(seqsh[c])
+            print(seqs[c])
+        else:
+            print(seqsh[c]+","+str(score))
 
     sys.stderr.write("\nClassification Complete\n")
 
@@ -370,6 +374,7 @@ def main(quiet, K, score_threshold, subsample_amount, fasta, fastqs):
 parser = argparse.ArgumentParser(description="Do some sweet viral classification")
 group = parser.add_mutually_exclusive_group()
 group.add_argument("-q", "--quiet", action="store_true")
+group.add_argument("--return_seqs", action="store_true")
 
 parser.add_argument("-k", type=int, help="Kmer Length")
 parser.add_argument("-s", type=float, help="Kmer filtering threshold")
@@ -392,7 +397,7 @@ min_thres = 0
 if args.k < max_kmer and args.k > min_kmer:
     if args.s < max_thres and args.s > min_thres:
         ###########Run main
-        main(args.quiet, args.k, args.s, args.r, args.fa, args.fq)
+        main(args.quiet, args.k, args.s, args.r, args.return_seqs, args.fa, args.fq)
 
     else:
         sys.stderr.write("\nPlease input correct score threshold ({} to {}) \n \n".format(min_thres, max_thres))
