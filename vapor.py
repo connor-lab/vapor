@@ -63,8 +63,8 @@ class wDBG():
                     self.edges[kmer] = 1
             # Add the first kmer to start positions, since they can represent the start of biological sequences
 #            start = string[:self.k]
-#            self.start_positions.add(start)            
-        # Now get the start positions, this is inefficient
+    def get_start_positions(self):
+        # now get start positions
         for kmer, weight in self.edges.items():
             edge = True
             for b in "ATCG":
@@ -114,7 +114,6 @@ class wDBG():
             for path in paths:
                 if path.cyclic == True:
                     final_paths.append(path)
-                    print("cycling")
                 else:
                     assert paths.count(path) == 1
                     localswitch = False
@@ -133,6 +132,7 @@ class wDBG():
                         # Never a tie at a branch! Assert it
                         maxtmp = max(tmp_additions.items(), key = lambda x:x[1])[1]
                         maxtmps = [t[0] for t in tmp_additions.items() if t[1] == maxtmp]
+                        assert maxtmp != 0
                         best_tmp = maxtmps[0]
                         path.add_edge(path.path[-1][1:]+best_tmp, maxtmp)
                         tmp_paths.append(path)
@@ -221,12 +221,15 @@ class cDBG():
         paths = remove_overlaps(paths)
         colors = []
         for path in paths:
+            assert path.score > 0
             seq = path.get_string()
-            kmers = (seq[i:i+self.k] for i in range(len(seq)))
+            kmers = (seq[i:i+self.k] for i in range(len(seq)-self.k+1))
             for kmer in kmers:
+                assert kmer in wdbg.edges or kmer in self.edges
                 if kmer in self.edges:
                     colors.append(self.edges[kmer])
 
+        assert len(colors) > 0
         sumo = np.zeros(len(seqs))
         sys.stderr.write("Summing colors")
         for c in colors:
@@ -234,7 +237,7 @@ class cDBG():
             sumo += arr[1:]
 
         maxi = max(sumo)
-        maxs = [len(sumo)-i-1 for i in range(len(sumo)) if sumo[i] == maxi]
+        maxs = [len(sumo)-i-1 for i in range(len(sumo)) if sumo[i] == maxi]            
         return (maxs, maxi)
 
 def get_kmers(strings,k):
@@ -260,11 +263,14 @@ def parse_and_prefilter(fqs, dbkmers, threshold, k):
                 if c == 1:
                     tmpseq = line.strip()
                     kcount = 0
-                    for i in range(0, len(tmpseq), k):
-                        if tmpseq[i:i+k] in dbkmers:
-                            kcount += 1
-                    if k*kcount/M < threshold:
-                        yield tmpseq
+                    # Don't allow Ns in read
+                    # Don't allow reads < k
+                    if "N" not in tmpseq and len(tmpseq) >= k:
+                        for i in range(0, len(tmpseq), k):
+                            if tmpseq[i:i+k] in dbkmers:
+                                kcount += 1
+                        if k*kcount/M < threshold:
+                            yield tmpseq
                 c += 1                  
                 if c == 4:
                     c = 0
@@ -312,7 +318,7 @@ def blockErr():
 def enablePrint():
     sys.stdout = sys.__stdout__
 
-def main(quiet, K, score_threshold, fasta, fastqs):
+def main(quiet, K, score_threshold, subsample_amount, fasta, fastqs):
 
     random.seed(100)
 
@@ -329,7 +335,7 @@ def main(quiet, K, score_threshold, fasta, fastqs):
 
     sys.stderr.write("Filtering reads\n")
     reads = [r for r in parse_and_prefilter(fastqs, dbkmers, score_threshold, K)]
-    reads = subsample(reads, 5000)
+    reads = subsample(reads, subsample_amount)
     sys.stderr.write(str(len(reads)) + " reads survived\n")
 
     if len(reads) == 0:
@@ -342,6 +348,11 @@ def main(quiet, K, score_threshold, fasta, fastqs):
     # cull any kmers that are not present in the reference kmers; these do not give additional information
     sys.stderr.write("Culling kmers\n")
     wdbg.cull(dbkmers)
+    sys.stderr.write("Getting start positions\n")
+    wdbg.get_start_positions()
+    sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
+    mew = max(wdbg.edges.items(), key = lambda x : x[1])[1]
+    sys.stderr.write("Largest edge weight: %d \n" % mew)
 
     cdbg = cDBG.from_strings_and_subgraph(seqs, K, wdbg)
 
@@ -360,9 +371,10 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument("-q", "--quiet", action="store_true")
 
 parser.add_argument("-k", type=int, help="Kmer Length")
-parser.add_argument("-s", type=float, help="Score threshold")
+parser.add_argument("-s", type=float, help="Kmer filtering threshold")
 parser.add_argument("-fa", type=str, help="Fasta file")
 parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
+parser.add_argument("-r", type=int, help="Number of reads to subsample")
 
 if len(sys.argv)==1:
     parser.print_help(sys.stderr)
@@ -379,7 +391,7 @@ min_thres = 0
 if args.k < max_kmer and args.k > min_kmer:
     if args.s < max_thres and args.s > min_thres:
         ###########Run main
-        main(args.quiet, args.k, args.s, args.fa, args.fq)
+        main(args.quiet, args.k, args.s, args.r, args.fa, args.fq)
 
     else:
         sys.stderr.write("\nPlease input correct score threshold ({} to {}) \n \n".format(min_thres, max_thres))
