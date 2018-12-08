@@ -384,54 +384,31 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Do some sweet viral classification")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-q", "--quiet", action="store_true")
+    group.add_argument("--return_seqs", action="store_true")
 
-<<<<<<< HEAD
     parser.add_argument("-k", type=int, help="Kmer Length")
-    parser.add_argument("-s", type=float, help="Score threshold")
+    parser.add_argument("-s", type=float, help="Kmer filtering threshold")
     parser.add_argument("-fa", type=str, help="Fasta file")
     parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
+    parser.add_argument("-r", type=int, help="Number of reads to subsample")
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
         sys.exit(1)
-=======
-parser = argparse.ArgumentParser(description="Do some sweet viral classification")
-group = parser.add_mutually_exclusive_group()
-group.add_argument("-q", "--quiet", action="store_true")
-group.add_argument("--return_seqs", action="store_true")
 
-parser.add_argument("-k", type=int, help="Kmer Length")
-parser.add_argument("-s", type=float, help="Kmer filtering threshold")
-parser.add_argument("-fa", type=str, help="Fasta file")
-parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
-parser.add_argument("-r", type=int, help="Number of reads to subsample")
+        args = parser.parse_args()
 
-if len(sys.argv)==1:
-    parser.print_help(sys.stderr)
-    sys.exit(1)
-
-    args = parser.parse_args()
-
-    ## set thresholds for user input
-    max_kmer = 30
-    min_kmer = 2
-    max_thres = 1
-    min_thres = 0
+        ## set thresholds for user input
+        max_kmer = 30
+        min_kmer = 2
+        max_thres = 1
+        min_thres = 0
 
     if args.k < max_kmer and args.k > min_kmer:
         if args.s < max_thres and args.s > min_thres:
             ###########Run main
-            main(args.quiet, args.k, args.s, args.fa, args.fq)
-if args.k < max_kmer and args.k > min_kmer:
-    if args.s < max_thres and args.s > min_thres:
-        ###########Run main
-        main(args.quiet, args.k, args.s, args.r, args.return_seqs, args.fa, args.fq)
-
+            main(args.quiet, args.k, args.s, args.r, args.return_seqs, args.fa, args.fq)
         else:
-            sys.stderr.write("\nPlease input correct score threshold ({} to {}) \n \n".format(min_thres, max_thres))
+            sys.stderr.write("\nPlease input correct kmer length ({} to {}) \n \n".format(min_kmer, max_kmer))
             parser.print_help(sys.stderr)
             sys.exit(1)
-    else:
-        sys.stderr.write("\nPlease input correct kmer length ({} to {}) \n \n".format(min_kmer, max_kmer))
-        parser.print_help(sys.stderr)
-        sys.exit(1)
