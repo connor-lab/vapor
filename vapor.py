@@ -27,14 +27,15 @@ def remove_overlaps(paths):
     flagarr = [0 for p in paths]
     for i in range(len(paths)-1):
         for j in range(i+1, len(paths)):
-            pi = paths[i]
-            pj = paths[j]
-            if len(pi.edges | pj.edges) > 0:
-                if pi.score > pj.score:
-                # The paths overlap at at least one kmer
-                    flagarr[j] = 1
-                else:
-                    flagarr[i] = 1
+            if flagarr[i] == 0 and flagarr[j] == 0:
+                pi = paths[i]
+                pj = paths[j]
+                if len(pi.edges & pj.edges) > 0:
+                    if pi.score > pj.score:
+                    # The paths overlap at at least one kmer
+                        flagarr[j] = 1
+                    else:
+                        flagarr[i] = 1
     for i in range(len(flagarr)):
         if flagarr[i] == 0:
             yield paths[i]
@@ -96,8 +97,8 @@ class wDBG():
             if kmer not in kmers:
                 todel.append(kmer)
         for kmer in todel:
-            if kmer not in self.start_positions:
-                del self.edges[kmer]
+#            if kmer not in self.start_positions:
+             del self.edges[kmer]
 
     def get_paths(self):
         paths = [Path(p, self.edges[p]) for p in self.start_positions]
@@ -208,7 +209,7 @@ class cDBG():
             z += 1
         sys.stderr.write("\n")
 
-    def classify(self, wdbg, seqs):
+    def classify(self, wdbg, seqs, min_path_score=10.):
 
         ## Note - Previously seqs arg was not specified but was being used below to define sumo variable from main
         # not sure if you realised this or not
@@ -216,10 +217,12 @@ class cDBG():
         # First build a dbg, second find shortest path in it, thirdly parse the color information
 #        wdbg = wDBG(reads, self.k)
 
-        paths = wdbg.get_paths()
-        paths = remove_overlaps(paths)
-        colors = []
+        paths = [p for p in wdbg.get_paths()]
+        paths = [p for p in remove_overlaps(paths) if p.score > min_path_score]
+        sys.stderr.write("Got %d fragments\n" % len(paths))
+        results = []
         for path in paths:
+            colors = []
             assert path.score > 0
             seq = path.get_string()
             kmers = (seq[i:i+self.k] for i in range(len(seq)-self.k+1))
@@ -228,16 +231,21 @@ class cDBG():
                 if kmer in self.edges:
                     colors.append(self.edges[kmer])
 
-        assert len(colors) > 0
-        sumo = np.zeros(len(seqs))
-        sys.stderr.write("Summing colors")
-        for c in colors:
-            arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)
-            sumo += arr[1:]
+            mpl = max([len(p.get_string()) for p in paths])
+            sys.stderr.write("%d paths found\n" % len(paths))
+            sys.stderr.write("Maximum path length: %d\n" % mpl)
 
-        maxi = max(sumo)
-        maxs = [len(sumo)-i-1 for i in range(len(sumo)) if sumo[i] == maxi]            
-        return (maxs, maxi)
+            assert len(colors) > 0
+            sumo = np.zeros(len(seqs))
+            sys.stderr.write("Summing colors")
+            for c in colors:
+                arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)
+                sumo += arr[1:]
+
+            maxi = max(sumo)
+            maxs = [len(sumo)-i-1 for i in range(len(sumo)) if sumo[i] == maxi]            
+            results.append((maxs, maxi))
+        return results
 
 def get_kmers(strings,k):
     kmers = set()
@@ -352,19 +360,21 @@ def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs
     sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
     sys.stderr.write("Getting start positions\n")
     wdbg.get_start_positions()
+    sys.stderr.write("%d start positions found\n" % len(wdbg.start_positions))
     mew = max(wdbg.edges.items(), key = lambda x : x[1])[1]
     sys.stderr.write("Largest edge weight: %d \n" % mew)
 
     cdbg = cDBG.from_strings_and_subgraph(seqs, K, wdbg)
 
     ### not sure if you want seqs below?
-    cls,score = cdbg.classify(wdbg, seqs)
-    if return_seqs == True:
-        for c in cls:
-                print(seqsh[c])
-                print(seqs[c])
-    else:
-        print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+    results = cdbg.classify(wdbg, seqs)
+    for cls, score in results:
+        if return_seqs == True:
+            for c in cls:
+                    print(seqsh[c])
+                    print(seqs[c])
+        else:
+            print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
 
     sys.stderr.write("\nClassification Complete\n")
 
