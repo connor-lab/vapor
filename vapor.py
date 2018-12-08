@@ -359,12 +359,12 @@ def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs
 
     ### not sure if you want seqs below?
     cls,score = cdbg.classify(wdbg, seqs)
-    for c in cls:
-        if return_seqs == True:
-            print(seqsh[c])
-            print(seqs[c])
-        else:
-            print(seqsh[c]+","+str(score))
+    if return_seqs == True:
+        for c in cls:
+                print(seqsh[c])
+                print(seqs[c])
+    else:
+        print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
 
     sys.stderr.write("\nClassification Complete\n")
 
