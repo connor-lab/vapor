@@ -365,14 +365,13 @@ def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs
     cdbg = cDBG.from_strings_and_subgraph(seqs, K, wdbg)
 
     ### not sure if you want seqs below?
-    results = cdbg.classify(wdbg, seqs)
-    for cls, score in results:
-        if return_seqs == True:
-            for c in cls:
-                    print(seqsh[c])
-                    print(seqs[c])
-        else:
-            print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+    cls, score = cdbg.classify(wdbg, seqs)
+    if return_seqs == True:
+        for c in cls:
+                print(seqsh[c])
+                print(seqs[c])
+    else:
+        print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
 
     sys.stderr.write("\nClassification Complete\n")
 
