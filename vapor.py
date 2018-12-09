@@ -209,7 +209,7 @@ class cDBG():
             z += 1
         sys.stderr.write("\n")
 
-    def classify(self, wdbg, seqs, min_path_score=10.):
+    def classify(self, wdbg, seqs, min_path_score=20.):
 
         ## Note - Previously seqs arg was not specified but was being used below to define sumo variable from main
         # not sure if you realised this or not
@@ -220,9 +220,8 @@ class cDBG():
         paths = [p for p in wdbg.get_paths()]
         paths = [p for p in remove_overlaps(paths) if p.score > min_path_score]
         sys.stderr.write("Got %d fragments\n" % len(paths))
-        results = []
+        colors = []
         for path in paths:
-            colors = []
             assert path.score > 0
             seq = path.get_string()
             kmers = (seq[i:i+self.k] for i in range(len(seq)-self.k+1))
@@ -231,21 +230,20 @@ class cDBG():
                 if kmer in self.edges:
                     colors.append(self.edges[kmer])
 
-            mpl = max([len(p.get_string()) for p in paths])
-            sys.stderr.write("%d paths found\n" % len(paths))
-            sys.stderr.write("Maximum path length: %d\n" % mpl)
+        mpl = max([len(p.get_string()) for p in paths])
+        sys.stderr.write("%d paths found\n" % len(paths))
+        sys.stderr.write("Maximum path length: %d\n" % mpl)
 
-            assert len(colors) > 0
-            sumo = np.zeros(len(seqs))
-            sys.stderr.write("Summing colors")
-            for c in colors:
-                arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)
-                sumo += arr[1:]
+        assert len(colors) > 0
+        sumo = np.zeros(len(seqs))
+        sys.stderr.write("Summing colors")
+        for c in colors:
+            arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)
+            sumo += arr[1:]
 
-            maxi = max(sumo)
-            maxs = [len(sumo)-i-1 for i in range(len(sumo)) if sumo[i] == maxi]            
-            results.append((maxs, maxi))
-        return results
+        maxi = max(sumo)
+        maxs = [len(sumo)-i-1 for i in range(len(sumo)) if sumo[i] == maxi]            
+        return maxs, maxi
 
 def get_kmers(strings,k):
     kmers = set()
