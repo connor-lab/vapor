@@ -396,13 +396,13 @@ if __name__ == '__main__':
         parser.print_help(sys.stderr)
         sys.exit(1)
 
-        args = parser.parse_args()
+    args = parser.parse_args()
 
-        ## set thresholds for user input
-        max_kmer = 30
-        min_kmer = 2
-        max_thres = 1
-        min_thres = 0
+    ## set thresholds for user input
+    max_kmer = 30
+    min_kmer = 2
+    max_thres = 1
+    min_thres = 0
 
     if args.k < max_kmer and args.k > min_kmer:
         if args.s < max_thres and args.s > min_thres:
