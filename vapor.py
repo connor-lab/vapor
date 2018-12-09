@@ -220,8 +220,8 @@ class cDBG():
         paths = [p for p in wdbg.get_paths()]
         paths = [p for p in remove_overlaps(paths) if p.score > min_path_score]
         sys.stderr.write("Got %d fragments\n" % len(paths))
-        colors = []
         for path in paths:
+            colors = []
             assert path.score > 0
             seq = path.get_string()
             kmers = (seq[i:i+self.k] for i in range(len(seq)-self.k+1))
@@ -230,20 +230,16 @@ class cDBG():
                 if kmer in self.edges:
                     colors.append(self.edges[kmer])
 
-        mpl = max([len(p.get_string()) for p in paths])
-        sys.stderr.write("%d paths found\n" % len(paths))
-        sys.stderr.write("Maximum path length: %d\n" % mpl)
+            mpl = max([len(p.get_string()) for p in paths])
+            assert len(colors) > 0
+            sumo = np.zeros(len(seqs))
+            for c in colors:
+                arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)
+                sumo += arr[1:]
 
-        assert len(colors) > 0
-        sumo = np.zeros(len(seqs))
-        sys.stderr.write("Summing colors")
-        for c in colors:
-            arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)
-            sumo += arr[1:]
-
-        maxi = max(sumo)
-        maxs = [len(sumo)-i-1 for i in range(len(sumo)) if sumo[i] == maxi]            
-        return maxs, maxi
+            max_color_score = max(sumo)
+            max_colors = [len(sumo)-i-1 for i in range(len(sumo)) if sumo[i] == max_color_score]            
+            yield max_colors, max_color_score, path.score
 
 def get_kmers(strings,k):
     kmers = set()
@@ -325,7 +321,7 @@ def blockErr():
 def enablePrint():
     sys.stdout = sys.__stdout__
 
-def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs):
+def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs, min_path_score, return_one):
 
     random.seed(100)
 
@@ -365,13 +361,16 @@ def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs
     cdbg = cDBG.from_strings_and_subgraph(seqs, K, wdbg)
 
     ### not sure if you want seqs below?
-    cls, score = cdbg.classify(wdbg, seqs)
-    if return_seqs == True:
-        for c in cls:
-                print(seqsh[c])
-                print(seqs[c])
-    else:
-        print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+    results = sorted([r for r in cdbg.classify(wdbg, seqs, min_path_score)], key = lambda x:x[1], reverse=True)
+    if return_one == True:
+        results = [results[0]]
+    for colors, color_score, path_score in results:
+        if return_seqs == True:
+            for c in colors:
+                    print(seqsh[c])
+                    print(seqs[c])
+        else:
+            print(str(color_score)+"\t"+str(path_score) + "\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in colors]))
 
     sys.stderr.write("\nClassification Complete\n")
 
@@ -382,12 +381,14 @@ if __name__ == '__main__':
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-q", "--quiet", action="store_true")
     group.add_argument("--return_seqs", action="store_true")
+    group.add_argument("--return_one", action="store_true")
 
     parser.add_argument("-k", type=int, help="Kmer Length")
     parser.add_argument("-s", type=float, help="Kmer filtering threshold")
     parser.add_argument("-fa", type=str, help="Fasta file")
     parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
     parser.add_argument("-r", type=int, help="Number of reads to subsample")
+    parser.add_argument("-f", type=int, help="Minimum fragment score", default=20.)
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
@@ -404,7 +405,7 @@ if __name__ == '__main__':
     if args.k < max_kmer and args.k > min_kmer:
         if args.s < max_thres and args.s > min_thres:
             ###########Run main
-            main(args.quiet, args.k, args.s, args.r, args.return_seqs, args.fa, args.fq)
+            main(args.quiet, args.k, args.s, args.r, args.return_seqs, args.fa, args.fq, args.f, args.return_one)
         else:
             sys.stderr.write("\nPlease input correct kmer length ({} to {}) \n \n".format(min_kmer, max_kmer))
             parser.print_help(sys.stderr)
