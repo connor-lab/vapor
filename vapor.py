@@ -218,12 +218,14 @@ class cDBG():
 #        wdbg = wDBG(reads, self.k)
 
         paths = [p for p in wdbg.get_paths()]
-        paths = [p for p in remove_overlaps(paths) if p.score > min_path_score]
+#        paths = [p for p in remove_overlaps(paths) if p.score > min_path_score]
+        paths = [p for p in paths if p.score > min_path_score]
         sys.stderr.write("Got %d fragments\n" % len(paths))
         colors = []
         for path in paths:
             assert path.score > 0
             seq = path.get_string()
+            print(seq)
             kmers = (seq[i:i+self.k] for i in range(len(seq)-self.k+1))
             for kmer in kmers:
                 assert kmer in wdbg.edges or kmer in self.edges
@@ -342,7 +344,8 @@ def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs
 
     sys.stderr.write("Filtering reads\n")
     reads = [r for r in parse_and_prefilter(fastqs, dbkmers, score_threshold, K)]
-    reads = subsample(reads, subsample_amount)
+    if subsample_amount != None:
+        reads = subsample(reads, subsample_amount)
     sys.stderr.write(str(len(reads)) + " reads survived\n")
 
     if len(reads) == 0:
