@@ -228,6 +228,7 @@ class cDBG():
         for path in paths:
             assert path.score > 0
             seq = path.get_string()
+            print(seq)
             kmers = (seq[i:i+self.k] for i in range(len(seq)-self.k+1))
             for kmer in kmers:
                 assert kmer in wdbg.edges or kmer in self.edges
@@ -363,7 +364,7 @@ def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs
     # prefilter
     wdbg = wDBG(reads, K)
     # cull any kmers that are not present in the reference kmers; these do not give additional information
-    sys.stderr.write("Culling kmers\n")
+    sys.stderr.write("Culling kmers, beginning with %s\n" % len(wdbg.edges))
     wdbg.cull(dbkmers)
     sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
     sys.stderr.write("Getting start positions\n")
