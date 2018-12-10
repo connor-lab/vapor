@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/python3
 
 import sys
 import numpy as np
@@ -220,30 +220,35 @@ class cDBG():
 #        wdbg = wDBG(reads, self.k)
 
         paths = [p for p in wdbg.get_paths()]
-#        paths = [p for p in remove_overlaps(paths) if p.score > min_path_score]
-        paths = [p for p in paths if p.score > min_path_score]
+        paths = [p for p in remove_overlaps(paths) if p.score > min_path_score]
+#        paths = [p for p in paths if p.score > min_path_score]
         sys.stderr.write("Got %d fragments\n" % len(paths))
         colors = []
+        all_colors = (1 << (self.n))
         for path in paths:
             assert path.score > 0
             seq = path.get_string()
-            print(seq)
             kmers = (seq[i:i+self.k] for i in range(len(seq)-self.k+1))
             for kmer in kmers:
                 assert kmer in wdbg.edges or kmer in self.edges
                 if kmer in self.edges:
                     colors.append(self.edges[kmer])
+                    all_colors = all_colors | self.edges[kmer]
 
         mpl = max([len(p.get_string()) for p in paths])
         sys.stderr.write("%d paths found\n" % len(paths))
         sys.stderr.write("Maximum path length: %d\n" % mpl)
+        all_colors_arr = np.fromstring(np.binary_repr(all_colors), dtype='S1').astype(int)    
+        sys.stderr.write("Number of compatible colors: %d\n" % sum(all_colors_arr))
 
         assert len(colors) > 0
         sumo = np.zeros(len(seqs))
-        sys.stderr.write("Summing colors")
+        sys.stderr.write("Contiguizing colors")
+        # colorflags is 1 if a given color is in a contiguous stretch; 0 otherwise. If it is, only one additional base is given to the color; if it is not, k additional bases are given
+        color_flag = np.zeros(self.n)
         for c in colors:
-            arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)
-            sumo += arr[1:]
+            arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)[1:]
+            sumo += (self.k * (1-color_flag) + color_flag) * arr
 
         maxi = max(sumo)
         maxs = [len(sumo)-i-1 for i in range(len(sumo)) if sumo[i] == maxi]            
