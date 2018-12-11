@@ -228,7 +228,6 @@ class cDBG():
         for path in paths:
             assert path.score > 0
             seq = path.get_string()
-            print(seq)
             kmers = (seq[i:i+self.k] for i in range(len(seq)-self.k+1))
             for kmer in kmers:
                 assert kmer in wdbg.edges or kmer in self.edges
