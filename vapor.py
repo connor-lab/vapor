@@ -220,8 +220,8 @@ class cDBG():
 #        wdbg = wDBG(reads, self.k)
 
         paths = [p for p in wdbg.get_paths()]
-#       paths = [p for p in remove_overlaps(paths) if p.score > min_path_score]
-        paths = [p for p in paths if p.score > min_path_score]
+        paths = [p for p in remove_overlaps(paths) if p.score > min_path_score]
+#        paths = [p for p in paths if p.score > min_path_score]
         sys.stderr.write("Got %d fragments\n" % len(paths))
         colors = []
         all_colors = (1 << (self.n))
