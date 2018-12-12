@@ -1,4 +1,8 @@
-VAPOR: influenza Virus samPle clAssification frOm WGS Reads
+DESCRIPTION
+
+VAPOR: influenza Virus samPle clAssification frOm WGS Reads. VAPOR is provided with a large set of reference fastas (> 20,000) for a given segment, and retrieves one that is closest to the sample strain.
+
+USAGE:
 
 usage: vapor.py [-h] [-q] [-k K] [-s S] [-fa FA]
                               [-fq FQ [FQ ...]]
@@ -18,4 +22,26 @@ Example:
 
 Author: Joel Southgate
 Email (for inquiries): southgateJA@cardiff.ac.uk
+
+REQUIREMENTS
+
+Python 3.x
+NumPy 1.51.x
+
+COPYRIGHT
+
+Copyright 2018 Joel Southgate
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
