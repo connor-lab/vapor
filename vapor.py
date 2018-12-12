@@ -1,4 +1,28 @@
 #!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
+""" 
+VAPOR: influenza Virus samPle clAssification frOm WGS Reads
+
+usage: vapor.py [-h] [-q] [-k K] [-s S] [-fa FA]
+                              [-fq FQ [FQ ...]]
+
+optional arguments:
+    -h, --help          Show this help message and exit
+    -q, --quiet         Suppresses output to stderr
+    --return_seqs       Returns a fasta of sequences, instead of hits       
+
+    -k K                Kmer length [21]
+    -s S                Pre-Filtering Score threshold [0.7]
+    -fa FA              Fasta file
+    -fq FQ [FQ ...]     Fastq file/files
+
+Example:
+    vapor.py -k 21 -s 0.7 -fa HA_sequences.fa -fq reads_1.fq
+
+Author: Joel Southgate
+Email (for inquiries): southgateJA@cardiff.ac.uk
+"""
 
 import sys
 import numpy as np
@@ -7,7 +31,9 @@ import argparse
 import os
 
 class Path():
+    """ Path object for traversing DBG """
     def __init__(self, start_edge, start_score):
+        # Initialize from a start position in a DBG
         self.edges = {start_edge}
         self.path = [start_edge]
         self.score = start_score
@@ -25,7 +51,8 @@ class Path():
         return s
 
 def remove_overlaps(paths):
-    # Greedy approach to resolving overlaps
+    """ Greedily resolving conflicting paths """
+    # Removes the lowest scoring of a pair with nonzero kmer set intersection """
     flagarr = [0 for p in paths]
     for i in range(len(paths)-1):
         for j in range(i+1, len(paths)):
@@ -34,7 +61,6 @@ def remove_overlaps(paths):
                 pj = paths[j]
                 if len(pi.edges & pj.edges) > 0:
                     if pi.score > pj.score:
-                    # The paths overlap at at least one kmer
                         flagarr[j] = 1
                     else:
                         flagarr[i] = 1
@@ -43,15 +69,15 @@ def remove_overlaps(paths):
             yield paths[i]
  
 class wDBG():
-    # DBG with additional weights on each edge
+    """ Basic DBG with associated edge weights """
     def __init__(self, strings, k):
+        # Only explicitly store edges
         self.edges = {}
         self.k = k
         self.start_positions = set()
         self._build(strings)
 
     def _build(self, strings):
-
         sys.stderr.write("Building wDBG\n")
         newkmerc = 0
         for si, string in enumerate(strings):
@@ -64,10 +90,9 @@ class wDBG():
                 else:
                     newkmerc += 1
                     self.edges[kmer] = 1
-            # Add the first kmer to start positions, since they can represent the start of biological sequences
-#            start = string[:self.k]
+
     def get_start_positions(self):
-        # now get start positions
+        """ Gets positions in the graph that have no inward edge """
         for kmer, weight in self.edges.items():
             edge = True
             for b in "ATCG":
@@ -76,33 +101,17 @@ class wDBG():
             if edge == True:
                 self.start_positions.add(kmer)
 
-    def get_n_branches(self):
-        nodes = {}
-        for e in self.edges:
-            n1 = e[1:]
-            n2 = e[:-1]
-            nodes[n1] = 0
-            nodes[n2] = 0
-        for node in nodes:
-            for b in "ATCG":
-                if node+b in self.edges:
-                    nodes[node] += 1
-        n = 0
-        for node in nodes:
-            if nodes[node] > 1:
-                 n += 1
-        return n
-
     def cull(self, kmers):
+        """ Removes any kmer in kmers from edges """
         todel = []
         for kmer in self.edges:
             if kmer not in kmers:
                 todel.append(kmer)
         for kmer in todel:
-#            if kmer not in self.start_positions:
              del self.edges[kmer]
 
     def get_paths(self):
+        """ Traverses the wDBG heuristically, getting a list of paths """
         paths = [Path(p, self.edges[p]) for p in self.start_positions]
         pstrings = [p.get_string() for p in paths]
         assert len(pstrings) == len(set(pstrings))
@@ -124,14 +133,8 @@ class wDBG():
                         tmpkmer = path.path[-1][1:] + b
                         if tmpkmer in self.edges:
                             tmp_additions[b] = self.edges[tmpkmer]
-#                            tmp_path.add_edge(tmpkmer, self.edges[tmpkmer])
-    #                        tmp_path[0] = tmp_path[0] + b
-    #                        tmp_path[1] += self.edges[tmpkmer]
-    #                        tmp_paths.append(tmp_path)
-#                            best_tmps.append(tmp_path)
                             localswitch = True
                     if localswitch == True:
-                        # Never a tie at a branch! Assert it
                         maxtmp = max(tmp_additions.items(), key = lambda x:x[1])[1]
                         maxtmps = [t[0] for t in tmp_additions.items() if t[1] == maxtmp]
                         assert maxtmp != 0
@@ -141,8 +144,6 @@ class wDBG():
                     else:
                         final_paths.append(path)                
             paths = tmp_paths
-
-            # For our heuristic walk, we cant haave more paths than starts
             assert len(tmp_paths) <= len(paths)
             assert len(paths) <= len(self.start_positions)
             paths = tmp_paths
@@ -151,6 +152,7 @@ class wDBG():
         return final_paths          
 
 class cDBG():
+    """ Basic DBG with additional color information """
     def __init__(self, k):
         self.edges = {}
         self.k = k
@@ -159,6 +161,7 @@ class cDBG():
     
     @classmethod
     def from_strings(cls, strings, k):
+        """ Builds the cDBG from strings """
         c = cls(k)
         c.n = len(strings)
         c._build(strings)
@@ -166,6 +169,7 @@ class cDBG():
 
     @classmethod
     def from_strings_and_subgraph(cls, strings, k, subgraph):
+        """ As before, but only for parts intersecting with subgraph """
         c = cls(k)
         c.n = len(strings)
         c._build(strings, subgraph)
@@ -173,7 +177,6 @@ class cDBG():
         return c
 
     def _build(self, strings, subgraph=False):
-        # Build the color classes
         sys.stderr.write("Adding strings:\n")
         for si, string in enumerate(strings):
             sys.stderr.write(str(si)+"        \r")
@@ -186,14 +189,8 @@ class cDBG():
                         self.edges[kmer] = [si]
         sys.stderr.write("\n")
 
-    def score(self, string):
-        score = 0
-        for kmer in (string[i:i+self.k] for i in range(len(string)-self.k+1)):
-            if kmer in self.edges:
-                score += 1
-        return score            
-
     def build_color_classes(self, subkmers=None):
+        """ Builds the color classes using binary strings """
         sys.stderr.write("Building color classes:\n")
         z = 0
         if subkmers == None:
@@ -212,19 +209,16 @@ class cDBG():
         sys.stderr.write("\n")
 
     def classify(self, wdbg, seqs, min_path_score=20.):
+        """ Classifies a wdbg """
 
-        ## Note - Previously seqs arg was not specified but was being used below to define sumo variable from main
-        # not sure if you realised this or not
-
-        # First build a dbg, second find shortest path in it, thirdly parse the color information
-#        wdbg = wDBG(reads, self.k)
-
+        # First get paths
         paths = [p for p in wdbg.get_paths()]
         paths = [p for p in remove_overlaps(paths) if p.score > min_path_score]
-#        paths = [p for p in paths if p.score > min_path_score]
         sys.stderr.write("Got %d fragments\n" % len(paths))
         colors = []
         all_colors = (1 << (self.n))
+        
+        # Next get arrays of color classes for paths
         for path in paths:
             assert path.score > 0
             seq = path.get_string()
@@ -240,21 +234,21 @@ class cDBG():
         sys.stderr.write("Maximum path length: %d\n" % mpl)
         all_colors_arr = np.fromstring(np.binary_repr(all_colors), dtype='S1').astype(int)    
         sys.stderr.write("Number of compatible colors: %d\n" % sum(all_colors_arr))
-
         assert len(colors) > 0
+
+        # Lastly contiguize the colors for scoring
         sumo = np.zeros(len(seqs))
         sys.stderr.write("Contiguizing colors")
-        # colorflags is 1 if a given color is in a contiguous stretch; 0 otherwise. If it is, only one additional base is given to the color; if it is not, k additional bases are given
         color_flag = np.zeros(self.n)
         for c in colors:
             arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)[1:]
             sumo += (self.k * (1-color_flag) + color_flag) * arr
-
         maxi = max(sumo)
         maxs = [len(sumo)-i-1 for i in range(len(sumo)) if sumo[i] == maxi]            
         return maxs, maxi
 
 def get_kmers(strings,k):
+    """ Takes strings and returns a set of kmers """
     kmers = set()
     for string in strings:
         for i in range(len(string)-k+1):
@@ -269,6 +263,7 @@ def rev_comp(read):
     return read.upper()[::-1]
 
 def parse_and_prefilter(fqs, dbkmers, threshold, k):
+    """ Parses fastq files fqs, and filters them """
     c = 0
     M = float(len(dbkmers))
     seen = set()
@@ -285,6 +280,7 @@ def parse_and_prefilter(fqs, dbkmers, threshold, k):
                         for i in range(0, len(tmpseq), k):
                             if tmpseq[i:i+k] in dbkmers:
                                 kcount += 1
+                        # Only allow reads with a given number of words in dbkmers
                         if k*kcount/M < threshold:
                             yield tmpseq
                 c += 1                  
@@ -292,6 +288,7 @@ def parse_and_prefilter(fqs, dbkmers, threshold, k):
                     c = 0
 
 def parse_fasta_uniq(fasta, filter_Ns=True):
+    """ Gets unique sequences from a fasta, with filtering of Ns"""
     tmph = ""
     tmps = ""
     hs = []
@@ -314,31 +311,20 @@ def parse_fasta_uniq(fasta, filter_Ns=True):
     ss.append(tmps)
     return hs, ss 
 
-def choose_paths(paths):
-    maxi = max(paths, key=lambda x: x[1])[1]
-    for path in paths:
-        if path[1] == maxi:
-            yield path
-
 def subsample(reads, n):
+    """ Takes a sample of n from reads """
     if n >= len(reads):
         return reads
     else:
-        return random.sample(reads, n)
-    
+        return random.sample(reads, n) 
 
 def blockErr():
+    """ Block std err for quiet mode """
     sys.stderr = open(os.devnull, 'w')
-
-# Restore
-def enablePrint():
-    sys.stdout = sys.__stdout__
 
 def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs):
 
-    random.seed(100)
-
-    ## maybe something like this if you can be bothered.
+    # If quiet, don't output anything to stderr 
     if quiet:
         blockErr()
 
@@ -346,35 +332,39 @@ def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs
     seqsh, seqs = parse_fasta_uniq(fasta)
     sys.stderr.write("Got %d unique sequences\n" % len(seqs))
 
+    # Get database kmers for filtering
     sys.stderr.write("Getting database kmers\n")
     dbkmers = get_kmers(seqs, K)
 
     sys.stderr.write("Filtering reads\n")
+    # Parse and pre-filter reads
     reads = [r for r in parse_and_prefilter(fastqs, dbkmers, score_threshold, K)]
     if subsample_amount != None:
         reads = subsample(reads, subsample_amount)
     sys.stderr.write(str(len(reads)) + " reads survived\n")
 
+    # Check there are still sequences remaining
     if len(reads) == 0:
-        enablePrint()
         sys.stderr.write("Exiting. Is there any virus in your sequences? Try a lower filtering threshold.\n")
         sys.exit(1)
 
-    # prefilter
+    # Build the wDBG from reads
     wdbg = wDBG(reads, K)
-    # cull any kmers that are not present in the reference kmers; these do not give additional information
+    # Cull any kmers that are not present in the reference kmers
     sys.stderr.write("Culling kmers, beginning with %s\n" % len(wdbg.edges))
     wdbg.cull(dbkmers)
     sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
     sys.stderr.write("Getting start positions\n")
+    # Get start positions for paths
     wdbg.get_start_positions()
     sys.stderr.write("%d start positions found\n" % len(wdbg.start_positions))
     mew = max(wdbg.edges.items(), key = lambda x : x[1])[1]
     sys.stderr.write("Largest edge weight: %d \n" % mew)
 
+    # Build cDBG; don't build nodes that are not used, though
     cdbg = cDBG.from_strings_and_subgraph(seqs, K, wdbg)
 
-    ### not sure if you want seqs below?
+    # Finally, classify
     cls, score = cdbg.classify(wdbg, seqs)
     if return_seqs == True:
         for c in cls:
@@ -386,8 +376,7 @@ def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs
     sys.stderr.write("\nClassification Complete\n")
 
 if __name__ == '__main__':
-    ##### Command line Interface
-
+    # CLI
     parser = argparse.ArgumentParser(description="Do some sweet viral classification")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-q", "--quiet", action="store_true")
@@ -405,9 +394,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    ## set thresholds for user input
+    # Set some thresholds for user input
     max_kmer = 30
-    min_kmer = 2
+    min_kmer = 5
     max_thres = 1
     min_thres = 0
 
