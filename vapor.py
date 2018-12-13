@@ -232,7 +232,7 @@ class cDBG():
         paths = [p for p in remove_overlaps(paths) if p.score > min_path_weight]
         sys.stderr.write("Got %d fragments\n" % len(paths))
         if len(paths) == 0:
-            sys.stderr.write("No paths with a greater weight than %d found. Please try a lower threshold (-w) than $d \n" % (min_path_weight, min_path_weight))
+            sys.stderr.write("No paths with a greater weight than %d found. Please try a lower threshold (-w) than %d \n" % (min_path_weight, min_path_weight))
             sys.exit(1)
         colors = []
         all_colors = (1 << (self.n))
