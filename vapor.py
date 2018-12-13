@@ -224,13 +224,16 @@ class cDBG():
             z += 1
         sys.stderr.write("\n")
 
-    def classify(self, wdbg, seqs, min_path_score=20.):
+    def classify(self, wdbg, seqs, min_path_weight=20.):
         """ Classifies a wdbg """
 
         # First get paths
         paths = [p for p in wdbg.get_paths()]
-        paths = [p for p in remove_overlaps(paths) if p.score > min_path_score]
+        paths = [p for p in remove_overlaps(paths) if p.score > min_path_weight]
         sys.stderr.write("Got %d fragments\n" % len(paths))
+        if len(paths) == 0:
+            sys.stderr.write("No paths with a greater weight than %d found. Please try a lower threshold (-w) than $d \n" % (min_path_weight, min_path_weight))
+            sys.exit(1)
         colors = []
         all_colors = (1 << (self.n))
         
@@ -338,7 +341,7 @@ def blockErr():
     """ Block std err for quiet mode """
     sys.stderr = open(os.devnull, 'w')
 
-def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs):
+def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs, min_path_weight):
 
     # If quiet, don't output anything to stderr 
     if quiet:
@@ -370,6 +373,10 @@ def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs
     sys.stderr.write("Culling kmers, beginning with %s\n" % len(wdbg.edges))
     wdbg.cull(dbkmers)
     sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
+    if len(wdbg.edges) == 0:
+        sys.stderr.write("Zero kmers remaining! None of the kmers in your reads were found in the database. More reads or a lower -k could help. \n")
+        sys.exit(1)
+        
     sys.stderr.write("Getting start positions\n")
     # Get start positions for paths
     wdbg.get_start_positions()
@@ -381,7 +388,7 @@ def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs
     cdbg = cDBG.from_strings_and_subgraph(seqs, K, wdbg)
 
     # Finally, classify
-    cls, score = cdbg.classify(wdbg, seqs)
+    cls, score = cdbg.classify(wdbg, seqs, min_path_weight)
     if return_seqs == True:
         for c in cls:
                 print(seqsh[c])
@@ -399,6 +406,7 @@ if __name__ == '__main__':
     group2 = parser.add_mutually_exclusive_group()
     group2.add_argument("--return_seqs", action="store_true")
 
+    parser.add_argument("-w", type=int, help="Minimum Path Weight", nargs='?', default=20)
     parser.add_argument("-k", type=int, help="Kmer Length")
     parser.add_argument("-s", type=float, help="Kmer filtering threshold")
     parser.add_argument("-fa", type=str, help="Fasta file")
@@ -420,7 +428,7 @@ if __name__ == '__main__':
     if args.k < max_kmer and args.k > min_kmer:
         if args.s < max_thres and args.s > min_thres:
             ###########Run main
-            main(args.quiet, args.k, args.s, args.r, args.return_seqs, args.fa, args.fq)
+            main(args.quiet, args.k, args.s, args.r, args.return_seqs, args.fa, args.fq, args.w)
         else:
             sys.stderr.write("\nPlease input correct kmer length ({} to {}) \n \n".format(min_kmer, max_kmer))
             parser.print_help(sys.stderr)
