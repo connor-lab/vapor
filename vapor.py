@@ -396,7 +396,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Do some sweet viral classification")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-q", "--quiet", action="store_true")
-    group.add_argument("--return_seqs", action="store_true")
+    group2 = parser.add_mutually_exclusive_group()
+    group2.add_argument("--return_seqs", action="store_true")
 
     parser.add_argument("-k", type=int, help="Kmer Length")
     parser.add_argument("-s", type=float, help="Kmer filtering threshold")
