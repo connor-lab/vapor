@@ -430,6 +430,10 @@ if __name__ == '__main__':
             ###########Run main
             main(args.quiet, args.k, args.s, args.r, args.return_seqs, args.fa, args.fq, args.w)
         else:
-            sys.stderr.write("\nPlease input correct kmer length ({} to {}) \n \n".format(min_kmer, max_kmer))
+            sys.stderr.write("\nPlease input valid score threshold for prefiltering ({} to {}) \n \n".format(min_thres, max_thres))
             parser.print_help(sys.stderr)
             sys.exit(1)
+    else:
+        sys.stderr.write("\nPlease input valid kmer length ({} to {}) \n \n".format(min_kmer, max_kmer))
+        parser.print_help(sys.stderr)
+        sys.exit(1)
