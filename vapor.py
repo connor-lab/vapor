@@ -42,6 +42,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import sys
 import numpy as np
+import gzip
 import random
 import argparse
 import os
@@ -287,24 +288,28 @@ def parse_and_prefilter(fqs, dbkmers, threshold, k):
     M = float(len(dbkmers))
     seen = set()
     for fq in fqs:
-        with open(fq) as f:
-            for line in f:
-                if c == 1:
-                    tmpseq = line.strip()
-                    kcount = 0
-                    # Don't allow Ns in read
-                    # Don't allow reads < k
-                    if "N" not in tmpseq and len(tmpseq) >= k and tmpseq not in seen:
-                        seen.add(tmpseq)
-                        for i in range(0, len(tmpseq), k):
-                            if tmpseq[i:i+k] in dbkmers:
-                                kcount += 1
-                        # Only allow reads with a given number of words in dbkmers
-                        if k*kcount/M < threshold:
-                            yield tmpseq
-                c += 1                  
-                if c == 4:
-                    c = 0
+        if fq.endswith(".gz"):
+            f = gzip.open(fq,'rt')
+        else:
+            f = open(fq,'r')
+        for line in f:
+            if c == 1:
+                tmpseq = line.strip()
+                kcount = 0
+                # Don't allow Ns in read
+                # Don't allow reads < k
+                if "N" not in tmpseq and len(tmpseq) >= k and tmpseq not in seen:
+                    seen.add(tmpseq)
+                    for i in range(0, len(tmpseq), k):
+                        if tmpseq[i:i+k] in dbkmers:
+                            kcount += 1
+                    # Only allow reads with a given number of words in dbkmers
+                    if k*kcount/M < threshold:
+                        yield tmpseq
+            c += 1                  
+            if c == 4:
+                c = 0
+        f.close()
 
 def parse_fasta_uniq(fasta, filter_Ns=True):
     """ Gets unique sequences from a fasta, with filtering of Ns"""
