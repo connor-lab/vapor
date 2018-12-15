@@ -51,14 +51,20 @@ class Path():
     """ Path object for traversing DBG """
     def __init__(self, start_edge, start_score):
         # Initialize from a start position in a DBG
-        self.edges = {start_edge}
+        # Recount, for each edge, the next edge
+        # For resolving cycles
+        self.edges = {start_edge:[]}
         self.path = [start_edge]
         self.score = start_score
         self.cyclic = False
     def add_edge(self, edge, score):
         if edge in self.edges:
             self.cyclic = True
-        self.edges.add(edge)
+        self.edges[edge] = []
+        # Also add the last base to the previous edge
+        # To avoid cycles
+        last_kmer = self.path[-1]
+        self.edges[last_kmer].append(edge[-1])
         self.path.append(edge)
         self.score += score
     def get_string(self):
@@ -140,26 +146,26 @@ class wDBG():
             assert len(paths) + len(final_paths) == len(self.start_positions)
             tmp_paths = []
             for path in paths:
-                if path.cyclic == True:
-                    final_paths.append(path)
-                else:
-                    assert paths.count(path) == 1
-                    localswitch = False
-                    tmp_additions = {}
-                    for b in "ATCG":
+                assert paths.count(path) == 1
+                localswitch = False
+                tmp_additions = {}
+                for b in "ATCG":
+                    # Check to see if the path has taken the route before
+                    last_kmer = path.path[-1]
+                    if b not in path.edges[last_kmer]:
                         tmpkmer = path.path[-1][1:] + b
                         if tmpkmer in self.edges:
                             tmp_additions[b] = self.edges[tmpkmer]
                             localswitch = True
-                    if localswitch == True:
-                        maxtmp = max(tmp_additions.items(), key = lambda x:x[1])[1]
-                        maxtmps = [t[0] for t in tmp_additions.items() if t[1] == maxtmp]
-                        assert maxtmp != 0
-                        best_tmp = maxtmps[0]
-                        path.add_edge(path.path[-1][1:]+best_tmp, maxtmp)
-                        tmp_paths.append(path)
-                    else:
-                        final_paths.append(path)                
+                if localswitch == True:
+                    maxtmp = max(tmp_additions.items(), key = lambda x:x[1])[1]
+                    maxtmps = [t[0] for t in tmp_additions.items() if t[1] == maxtmp]
+                    assert maxtmp != 0
+                    best_tmp = maxtmps[0]
+                    path.add_edge(path.path[-1][1:]+best_tmp, maxtmp)
+                    tmp_paths.append(path)
+                else:
+                    final_paths.append(path)                
             paths = tmp_paths
             assert len(tmp_paths) <= len(paths)
             assert len(paths) <= len(self.start_positions)
