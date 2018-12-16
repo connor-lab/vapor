@@ -59,8 +59,10 @@ class Path():
         self.cyclic = False
     def add_edge(self, edge, score):
         if edge in self.edges:
+            print("Cycling")
             self.cyclic = True
-        self.edges[edge] = []
+        if edge not in self.edges:
+            self.edges[edge] = []
         # Also add the last base to the previous edge
         # To avoid cycles
         last_kmer = self.path[-1]
@@ -82,7 +84,7 @@ def remove_overlaps(paths):
             if flagarr[i] == 0 and flagarr[j] == 0:
                 pi = paths[i]
                 pj = paths[j]
-                if len(pi.edges & pj.edges) > 0:
+                if len(set(pi.edges.keys()) & set(pj.edges.keys())) > 0:
                     if pi.score > pj.score:
                         flagarr[j] = 1
                     else:
@@ -241,11 +243,15 @@ class cDBG():
         if len(paths) == 0:
             sys.stderr.write("No paths with a greater weight than %d found. Please try a lower threshold (-w) than %d \n" % (min_path_weight, min_path_weight))
             sys.exit(1)
-        colors = []
-        all_colors = (1 << (self.n))
         
+        mpl = max([len(p.get_string()) for p in paths])
+        sys.stderr.write("%d paths found\n" % len(paths))
+        sys.stderr.write("Maximum path length: %d\n" % mpl)
+
+        total_colors = []
         # Next get arrays of color classes for paths
-        for path in paths:
+        for pi, path in enumerate(paths):
+            colors = []   
             assert path.score > 0
             seq = path.get_string()
             kmers = (seq[i:i+self.k] for i in range(len(seq)-self.k+1))
@@ -253,14 +259,8 @@ class cDBG():
                 assert kmer in wdbg.edges or kmer in self.edges
                 if kmer in self.edges:
                     colors.append(self.edges[kmer])
-                    all_colors = all_colors | self.edges[kmer]
 
-        mpl = max([len(p.get_string()) for p in paths])
-        sys.stderr.write("%d paths found\n" % len(paths))
-        sys.stderr.write("Maximum path length: %d\n" % mpl)
-        all_colors_arr = np.fromstring(np.binary_repr(all_colors), dtype='S1').astype(int)    
-        sys.stderr.write("Number of compatible colors: %d\n" % sum(all_colors_arr))
-        assert len(colors) > 0
+            assert len(colors) > 0
 
         # Lastly contiguize the colors for scoring
         sumo = np.zeros(len(seqs))
@@ -271,7 +271,7 @@ class cDBG():
             sumo += (self.k * (1-color_flag) + color_flag) * arr
         maxi = max(sumo)
         maxs = [len(sumo)-i-1 for i in range(len(sumo)) if sumo[i] == maxi]            
-        return maxs, maxi
+        yield len(path.path), path.score, maxs, maxi
 
 def get_kmers(strings,k):
     """ Takes strings and returns a set of kmers """
@@ -346,7 +346,11 @@ def subsample(reads, n):
     if n >= len(reads):
         return reads
     else:
-        return random.sample(reads, n) 
+        ret = []
+        for i in range(n):
+            randi = random.randint(0,len(reads))
+            ret.append(reads.pop(randi))
+        return ret
 
 def blockErr():
     """ Block std err for quiet mode """
@@ -399,13 +403,15 @@ def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs
     cdbg = cDBG.from_strings_and_subgraph(seqs, K, wdbg)
 
     # Finally, classify
-    cls, score = cdbg.classify(wdbg, seqs, min_path_weight)
+    path_results = cdbg.classify(wdbg, seqs, min_path_weight)
     if return_seqs == True:
-        for c in cls:
-                print(seqsh[c])
-                print(seqs[c])
+        for length, weight, cls, score in path_results:
+            for c in cls:
+                    print(seqsh[c])
+                    print(seqs[c])
     else:
-        print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+        for length, weight, cls, score in path_results:
+            print(str(length)+"\t"+str(weight)+"\t"+str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
 
     sys.stderr.write("\nClassification Complete\n")
 
