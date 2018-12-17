@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 """ 
-VAPOR: influenza Virus samPle clAssification frOm WGS Reads
-
 usage: vapor.py [-h] [-q] [-k K] [-s S] [-fa FA]
                               [-fq FQ [FQ ...]]
 

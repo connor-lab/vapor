@@ -1,6 +1,6 @@
 DESCRIPTION
 
-VAPOR: influenza Virus samPle clAssification frOm WGS Reads. VAPOR is provided with a large set of reference fastas (> 20,000) for a given segment, and retrieves one that is closest to the sample strain.
+VAPOR is provided with a large set of reference fastas (> 20,000) for a given segment, a set of reads, and retrieves one that is closest to the sample strain.
 
 USAGE:
 
@@ -15,10 +15,10 @@ optional arguments:
     -k K                Kmer length [21]
     -s S                Pre-Filtering Score threshold [0.7]
     -fa FA              Fasta file
-    -fq FQ [FQ ...]     Fastq file/files
+    -fq FQ [FQ ...]     Fastq file/files, can be gzipped
 
 Example:
-    vapor.py -k 21 -s 0.7 -fa HA_sequences.fa -fq reads_1.fq
+    vapor.py -k 21 -s 0.7 -fa HA_sequences.fa -fq reads_1.fq.gz
 
 Author: Joel Southgate
 Email (for inquiries): southgateJA@cardiff.ac.uk
