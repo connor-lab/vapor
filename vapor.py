@@ -43,8 +43,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import sys
 import argparse
 import os
-from dbg import *
-from vaporfunc import *
+import vapor as vp
 
 def blockErr():
     """ Block std err for quiet mode """
@@ -58,19 +57,19 @@ def main(args):
         blockErr()
 
     sys.stderr.write("Loading database sequences\n")
-    seqsh, seqs = parse_fasta_uniq(args.fa)
+    seqsh, seqs = vp.parse_fasta_uniq(args.fa)
     sys.stderr.write("Got %d unique sequences\n" % len(seqs))
 
     # Get database kmers for filtering
     sys.stderr.write("Getting database kmers\n")
-    dbkmers = get_kmers(seqs, args.k)
+    dbkmers = vp.get_kmers(seqs, args.k)
 
     sys.stderr.write("Filtering reads\n")
     # Parse and pre-filter reads
-    reads = [r for r in parse_and_prefilter(args.fq, dbkmers, args.threshold, args.k)]
+    reads = [r for r in vp.parse_and_prefilter(args.fq, dbkmers, args.threshold, args.k)]
     sys.stderr.write("Subsampling reads\n")
     if args.subsample != None:
-        reads = subsample(reads, args.subsample)
+        reads = vp.subsample(reads, args.subsample)
     sys.stderr.write(str(len(reads)) + " reads survived\n")
 
     # Check there are still sequences remaining
@@ -79,7 +78,7 @@ def main(args):
         sys.exit(1)
 
     # Build the wDBG from reads
-    wdbg = wDBG(reads, args.k)
+    wdbg = vp.wDBG(reads, args.k)
 
     # Cull any kmers that are not present in the reference kmers
     sys.stderr.write("Culling kmers, beginning with %s\n" % len(wdbg.edges))
@@ -97,7 +96,7 @@ def main(args):
     sys.stderr.write("Largest edge weight: %d \n" % mew)
 
     # Build cDBG; don't build nodes that are not used, though
-    cdbg = cDBG.from_strings_and_subgraph(seqs, args.k, wdbg)
+    cdbg = vp.cDBG.from_strings_and_subgraph(seqs, args.k, wdbg)
 
     # Finally, classify
     path_results = cdbg.classify(wdbg, seqs, args.weight)
