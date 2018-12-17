@@ -10,8 +10,10 @@ optional arguments:
     -q, --quiet         Suppresses output to stderr
     --return_seqs       Returns a fasta of sequences, instead of hits       
 
-    -k K                Kmer length [21]
-    -s S                Pre-Filtering Score threshold [0.7]
+    -k                  Kmer length [21]
+    -t, --threshold     Pre-Filtering Score threshold [0.7]
+    -s, --subsample     Number of reads to subsample, no subsampling by default
+    -w, --weight        Min path weight to consider [20]
     -fa FA              Fasta file
     -fq FQ [FQ ...]     Fastq file/files
 
@@ -491,7 +493,7 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--threshold", type=float, help="Kmer filtering threshold [default=0.7]", nargs='?', default=0.7)
     parser.add_argument("-fa", type=str, help="Fasta file")
     parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
-    parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample", nargs='?', default=None)
+    parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample [default=all reads]", nargs='?', default=None)
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
