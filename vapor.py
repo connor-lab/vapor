@@ -18,7 +18,7 @@ optional arguments:
     -fq FQ [FQ ...]     Fastq file/files
 
 Example:
-    vapor.py -k 21 -s 0.7 -fa HA_sequences.fa -fq reads_1.fq
+    vapor.py -fa HA_sequences.fa -fq reads_1.fq
 
 Author: Joel Southgate
 Email (for inquiries): southgateJA@cardiff.ac.uk
@@ -489,8 +489,8 @@ if __name__ == '__main__':
     group2.add_argument("--return_seqs", action="store_true")
 
     parser.add_argument("-w", "--weight", type=int, help="Minimum Path Weight [default=20]", nargs='?', default=20)
-    parser.add_argument("-k", type=int, help="Kmer Length [default=21]", nargs='?', default=21)
-    parser.add_argument("-t", "--threshold", type=float, help="Kmer filtering threshold [default=0.7]", nargs='?', default=0.7)
+    parser.add_argument("-k", type=int, help="Kmer Length [15 > int > 30, default=21]", nargs='?', default=21)
+    parser.add_argument("-t", "--threshold", type=float, help="Kmer filtering threshold [0 > float > 1, default=0.7]", nargs='?', default=0.7)
     parser.add_argument("-fa", type=str, help="Fasta file")
     parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
     parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample [default=all reads]", nargs='?', default=None)
@@ -503,7 +503,7 @@ if __name__ == '__main__':
 
     # Set some thresholds for user input
     max_kmer = 30
-    min_kmer = 5
+    min_kmer = 15
     max_thres = 1
     min_thres = 0
 
