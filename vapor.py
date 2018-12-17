@@ -116,6 +116,44 @@ class wDBG():
                     newkmerc += 1
                     self.edges[kmer] = 1
 
+    def get_statistics(self):
+        """ Gets statistics from the graph, such as: """
+        """ Degree distribution, branch ratios, weight distribution"""
+        """ Number of kmers, weight distribution """
+        """ The should be more thinly spread out for coinfection """
+        n_kmers = len(self.edges)
+        weights = np.array([w for kmer, w in self.edges.items()])
+        total_weight = sum(weights)
+        mean_weight = np.mean(weights)
+        std_weight = np.std(weights)
+        degrees = []
+        branch_ratios = []
+        for kmer, weight in self.edges.items():
+            d = 0
+            indegree_weights = []
+            outdegree_weights = []
+            for b in "ATCG":
+                new_outkmer = kmer[1:] + b
+                new_inkmer = b + kmer[:-1]
+                if new_inkmer in self.edges:
+                    d += 1
+                    indegree_weights.append(self.edges[new_inkmer])
+                if new_outkmer in self.edges:
+                    d += 1
+                    outdegree_weights.append(self.edges[new_outkmer])
+            if len(outdegree_weights) > 1:
+                branch_ratio = max(outdegree_weights)/sum(outdegree_weights)
+                branch_ratios.append(branch_ratio)
+            if len(indegree_weights) > 1:
+                branch_ratio = max(indegree_weights)/sum(indegree_weights)
+                branch_ratios.append(branch_ratio)
+            degrees.append(d)
+        mean_degree = np.mean(degrees)
+        std_degree= np.std(degrees)
+        mean_bratio = np.mean(branch_ratios)
+        std_bratio = np.std(branch_ratios)
+        return n_kmers, total_weight, mean_weight, std_weight, mean_degree, std_degree, mean_bratio, std_bratio
+
     def get_start_positions(self):
         """ Gets positions in the graph that have no inward edge """
         for kmer, weight in self.edges.items():
@@ -267,7 +305,6 @@ class cDBG():
         path_scores = []
         for colors in total_colors:
             sumo = np.zeros(len(seqs))
-            sys.stderr.write("Contiguizing colors")
             color_flag = np.zeros(self.n)
             for c in colors:
                 arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)[1:]
@@ -278,9 +315,25 @@ class cDBG():
         aggsumo = np.zeros(len(seqs))
         for sumo in path_scores:
             aggsumo += sumo
-        maxi = max(aggsumo)
-        maxs = [len(aggsumo)-i-1 for i in range(len(aggsumo)) if aggsumo[i] == maxi]            
-        yield len(path.path), path.score, maxs, maxi
+        maxs = max(aggsumo)
+        # Take the highest indices, noting they are backwards wrt 
+        maxi = [i for i in range(len(aggsumo)) if aggsumo[i] == maxs]            
+        # Finally, for the purposes of coinfection detection, we are going to 
+        # Examine the worst rank that this score gets, in each path
+        ranks = []
+        for pi,sumo in enumerate(path_scores):
+            maxi_path_score = sumo[maxi[0]]
+            sortind = np.argsort(sumo)[::-1]
+            sorted_scores = sumo[sortind]
+            path_weight = paths[pi].score
+            for i in range(len(sorted_scores)):
+                if sorted_scores[i] <= maxi_path_score:
+                    ranks.append([i,path_weight])
+                    break
+
+        # Order of the classes is different 
+        maxi_cls = [len(aggsumo)-i-1 for i in range(len(aggsumo)) if aggsumo[i] == maxs]       
+        yield len(path.path), path.score, maxi_cls, maxs, ranks
 
 def get_kmers(strings,k):
     """ Takes strings and returns a set of kmers """
@@ -355,35 +408,35 @@ def subsample(reads, n):
     if n >= len(reads):
         return reads
     else:
-        ret = []
-        for i in range(n):
-            randi = random.randint(0,len(reads))
-            ret.append(reads.pop(randi))
-        return ret
+#        random.shuffle(reads)
+#        return reads[:n]
+        return random.sample(reads, n)
 
 def blockErr():
     """ Block std err for quiet mode """
     sys.stderr = open(os.devnull, 'w')
 
-def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs, min_path_weight):
+#def main(quiet, k, score_threshold, subsample_amount, return_seqs, fasta, fastqs, min_path_weight):
+def main(args):
 
     # If quiet, don't output anything to stderr 
-    if quiet:
+    if args.quiet:
         blockErr()
 
     sys.stderr.write("Loading database sequences\n")
-    seqsh, seqs = parse_fasta_uniq(fasta)
+    seqsh, seqs = parse_fasta_uniq(args.fa)
     sys.stderr.write("Got %d unique sequences\n" % len(seqs))
 
     # Get database kmers for filtering
     sys.stderr.write("Getting database kmers\n")
-    dbkmers = get_kmers(seqs, K)
+    dbkmers = get_kmers(seqs, args.k)
 
     sys.stderr.write("Filtering reads\n")
     # Parse and pre-filter reads
-    reads = [r for r in parse_and_prefilter(fastqs, dbkmers, score_threshold, K)]
-    if subsample_amount != None:
-        reads = subsample(reads, subsample_amount)
+    reads = [r for r in parse_and_prefilter(args.fq, dbkmers, args.threshold, args.k)]
+    sys.stderr.write("Subsampling reads\n")
+    if args.subsample != None:
+        reads = subsample(reads, args.subsample)
     sys.stderr.write(str(len(reads)) + " reads survived\n")
 
     # Check there are still sequences remaining
@@ -392,7 +445,8 @@ def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs
         sys.exit(1)
 
     # Build the wDBG from reads
-    wdbg = wDBG(reads, K)
+    wdbg = wDBG(reads, args.k)
+
     # Cull any kmers that are not present in the reference kmers
     sys.stderr.write("Culling kmers, beginning with %s\n" % len(wdbg.edges))
     wdbg.cull(dbkmers)
@@ -409,18 +463,20 @@ def main(quiet, K, score_threshold, subsample_amount, return_seqs, fasta, fastqs
     sys.stderr.write("Largest edge weight: %d \n" % mew)
 
     # Build cDBG; don't build nodes that are not used, though
-    cdbg = cDBG.from_strings_and_subgraph(seqs, K, wdbg)
+    cdbg = cDBG.from_strings_and_subgraph(seqs, args.k, wdbg)
 
     # Finally, classify
-    path_results = cdbg.classify(wdbg, seqs, min_path_weight)
-    if return_seqs == True:
-        for length, weight, cls, score in path_results:
+    path_results = cdbg.classify(wdbg, seqs, args.weight)
+    if args.return_seqs == True:
+        for length, weight, cls, score, ranks in path_results:
             for c in cls:
                     print(seqsh[c])
                     print(seqs[c])
     else:
-        for length, weight, cls, score in path_results:
+        for length, weight, cls, score, ranks in path_results:
             print(str(length)+"\t"+str(weight)+"\t"+str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+            for rank in ranks:
+                print(rank)
 
     sys.stderr.write("\nClassification Complete\n")
 
@@ -432,12 +488,12 @@ if __name__ == '__main__':
     group2 = parser.add_mutually_exclusive_group()
     group2.add_argument("--return_seqs", action="store_true")
 
-    parser.add_argument("-w", type=int, help="Minimum Path Weight", nargs='?', default=20)
-    parser.add_argument("-k", type=int, help="Kmer Length")
-    parser.add_argument("-s", type=float, help="Kmer filtering threshold")
+    parser.add_argument("-w", "--weight", type=int, help="Minimum Path Weight [default=20]", nargs='?', default=20)
+    parser.add_argument("-k", type=int, help="Kmer Length [default=21]", nargs='?', default=21)
+    parser.add_argument("-t", "--threshold", type=float, help="Kmer filtering threshold [default=0.7]", nargs='?', default=0.7)
     parser.add_argument("-fa", type=str, help="Fasta file")
     parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
-    parser.add_argument("-r", type=int, help="Number of reads to subsample")
+    parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample", nargs='?', default=None)
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
@@ -452,9 +508,10 @@ if __name__ == '__main__':
     min_thres = 0
 
     if args.k < max_kmer and args.k > min_kmer:
-        if args.s < max_thres and args.s > min_thres:
+        if args.threshold < max_thres and args.threshold > min_thres:
             ###########Run main
-            main(args.quiet, args.k, args.s, args.r, args.return_seqs, args.fa, args.fq, args.w)
+#            main(args.quiet, args.k, args.s, args.r, args.return_seqs, args.fa, args.fq, args.w)
+            main(args)
         else:
             sys.stderr.write("\nPlease input valid score threshold for prefiltering ({} to {}) \n \n".format(min_thres, max_thres))
             parser.print_help(sys.stderr)
