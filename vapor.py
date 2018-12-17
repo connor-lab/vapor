@@ -259,18 +259,27 @@ class cDBG():
                 assert kmer in wdbg.edges or kmer in self.edges
                 if kmer in self.edges:
                     colors.append(self.edges[kmer])
-
             assert len(colors) > 0
+            total_colors.append(colors)
 
         # Lastly contiguize the colors for scoring
-        sumo = np.zeros(len(seqs))
-        sys.stderr.write("Contiguizing colors")
-        color_flag = np.zeros(self.n)
-        for c in colors:
-            arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)[1:]
-            sumo += (self.k * (1-color_flag) + color_flag) * arr
-        maxi = max(sumo)
-        maxs = [len(sumo)-i-1 for i in range(len(sumo)) if sumo[i] == maxi]            
+        # Need to do it individually for path, and then aggregate them
+        path_scores = []
+        for colors in total_colors:
+            sumo = np.zeros(len(seqs))
+            sys.stderr.write("Contiguizing colors")
+            color_flag = np.zeros(self.n)
+            for c in colors:
+                arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)[1:]
+                sumo += (self.k * (1-color_flag) + color_flag) * arr
+            path_scores.append(sumo)
+
+        # Now aggregate the scores for each path and rank
+        aggsumo = np.zeros(len(seqs))
+        for sumo in path_scores:
+            aggsumo += sumo
+        maxi = max(aggsumo)
+        maxs = [len(aggsumo)-i-1 for i in range(len(aggsumo)) if aggsumo[i] == maxi]            
         yield len(path.path), path.score, maxs, maxi
 
 def get_kmers(strings,k):
