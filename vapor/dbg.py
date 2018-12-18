@@ -289,6 +289,6 @@ class cDBG():
 
         # Order of the classes is different 
         maxi_cls = [len(aggsumo)-i-1 for i in range(len(aggsumo)) if aggsumo[i] == maxs]       
-        yield len(path.path), path.score, maxi_cls, maxs, ranks
+        return maxs, maxi_cls, ranks
 
 

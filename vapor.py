@@ -97,21 +97,29 @@ def main(args):
 
     # Build cDBG; don't build nodes that are not used, though
     cdbg = vp.cDBG.from_strings_and_subgraph(seqs, args.k, wdbg)
+    path_results = cdbg.classify(wdbg, seqs, args.weight)
 
     # Finally, classify
-    path_results = cdbg.classify(wdbg, seqs, args.weight)
-    if args.return_seqs == True:
-        for length, weight, cls, score, ranks in path_results:
-            for c in cls:
-                    print(seqsh[c])
-                    print(seqs[c])
-    else:
-        for length, weight, cls, score, ranks in path_results:
-            print(str(length)+"\t"+str(weight)+"\t"+str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
-            for rank in ranks:
-                print(rank)
+    if args.statistics == True:
+        sys.stderr.write("Fetching statistics\n")
+        statistics = wdbg.get_statistics()
+        strstats = "\t".join(list(map(str, statistics)))
+        score, cls, ranks = path_results
+        print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]) + "\t" + strstats)
+        strranks = "\t".join([str(rank[0])+","+str(rank[1]) for rank in ranks])
+        print(strranks)
+        print(ranks)
 
-    sys.stderr.write("\nClassification Complete\n")
+    else:
+        if args.return_seqs == True:
+            for length, weight, cls, score, ranks in path_results:
+                for c in cls:
+                        print(seqsh[c])
+                        print(seqs[c])
+        else:
+            for length, weight, cls, score, ranks in path_results:
+                print(str(length)+"\t"+str(weight)+"\t"+str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+        sys.stderr.write("\nClassification Complete\n")
 
 if __name__ == '__main__':
     # CLI
@@ -120,6 +128,7 @@ if __name__ == '__main__':
     group.add_argument("-q", "--quiet", action="store_true")
     group2 = parser.add_mutually_exclusive_group()
     group2.add_argument("--return_seqs", action="store_true")
+    group2.add_argument("--statistics", action="store_true")
 
     parser.add_argument("-w", "--weight", type=int, help="Minimum Path Weight [default=20]", nargs='?', default=20)
     parser.add_argument("-k", type=int, help="Kmer Length [15 > int > 30, default=21]", nargs='?', default=21)
@@ -142,8 +151,6 @@ if __name__ == '__main__':
 
     if args.k < max_kmer and args.k > min_kmer:
         if args.threshold < max_thres and args.threshold > min_thres:
-            ###########Run main
-#            main(args.quiet, args.k, args.s, args.r, args.return_seqs, args.fa, args.fq, args.w)
             main(args)
         else:
             sys.stderr.write("\nPlease input valid score threshold for prefiltering ({} to {}) \n \n".format(min_thres, max_thres))
