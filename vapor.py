@@ -105,10 +105,8 @@ def main(args):
         statistics = wdbg.get_statistics()
         strstats = "\t".join(list(map(str, statistics)))
         score, cls, ranks = path_results
-        print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]) + "\t" + strstats)
         strranks = "\t".join([str(rank[0])+","+str(rank[1]) for rank in ranks])
-        print(strranks)
-        print(ranks)
+        print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]) + "\t" + strstats + "\t" + strranks)
 
     else:
         if args.return_seqs == True:
