@@ -9,6 +9,7 @@ optional arguments:
     -h, --help          Show this help message and exit
     -q, --quiet         Suppresses output to stderr
     --return_seqs       Returns a fasta of sequences, instead of hits       
+    --statistics        Returns graph and classification statistics for model building
 
     -k                  Kmer length [21]
     -t, --threshold     Pre-Filtering Score threshold [0.7]
@@ -98,6 +99,7 @@ def main(args):
     # Build cDBG; don't build nodes that are not used, though
     cdbg = vp.cDBG.from_strings_and_subgraph(seqs, args.k, wdbg)
     path_results = cdbg.classify(wdbg, seqs, args.weight)
+    score, cls, ranks = path_results
 
     # Finally, classify
     if args.statistics == True:
@@ -106,17 +108,16 @@ def main(args):
         strstats = "\t".join(list(map(str, statistics)))
         score, cls, ranks = path_results
         strranks = "\t".join([str(rank[0])+","+str(rank[1]) for rank in ranks])
-        print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]) + "\t" + strstats + "\t" + strranks)
+        strcls = ",".join([seqsh[c].replace(" ", "_") for c in cls])
+        print(str(score)+"\t"+str(len(reads))+"\t"+ strcls + "\t" + strstats + "\t" + strranks)
 
     else:
         if args.return_seqs == True:
-            for length, weight, cls, score, ranks in path_results:
-                for c in cls:
-                        print(seqsh[c])
-                        print(seqs[c])
+            for c in cls:
+                print(seqsh[c])
+                print(seqs[c])
         else:
-            for length, weight, cls, score, ranks in path_results:
-                print(str(length)+"\t"+str(weight)+"\t"+str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+            print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
         sys.stderr.write("\nClassification Complete\n")
 
 if __name__ == '__main__':
