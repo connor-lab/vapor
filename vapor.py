@@ -82,7 +82,7 @@ def main(args):
     wdbg = vp.wDBG(reads, args.k)
     if args.statistics == True:
         sys.stderr.write("Fetching statistics\n")
-        statistics = wdbg.get_branch_statistics()
+        statistics = wdbg.get_statistics()
 
     # Cull any kmers that are not present in the reference kmers
     sys.stderr.write("Culling kmers, beginning with %s\n" % len(wdbg.edges))
@@ -103,7 +103,6 @@ def main(args):
     cdbg = vp.cDBG.from_strings_and_subgraph(seqs, args.k, wdbg)
     path_results = cdbg.classify(wdbg, seqs, args.weight)
     score, cls, ranks = path_results
-
     # Finally, classify
     if args.statistics == True:
         strstats = "\t".join(list(map(str, statistics)))
