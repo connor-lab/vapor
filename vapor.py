@@ -80,6 +80,9 @@ def main(args):
 
     # Build the wDBG from reads
     wdbg = vp.wDBG(reads, args.k)
+    if args.statistics == True:
+        sys.stderr.write("Fetching statistics\n")
+        statistics = wdbg.get_statistics()
 
     # Cull any kmers that are not present in the reference kmers
     sys.stderr.write("Culling kmers, beginning with %s\n" % len(wdbg.edges))
@@ -103,8 +106,6 @@ def main(args):
 
     # Finally, classify
     if args.statistics == True:
-        sys.stderr.write("Fetching statistics\n")
-        statistics = wdbg.get_statistics()
         strstats = "\t".join(list(map(str, statistics)))
         score, cls, ranks = path_results
         strranks = "\t".join([str(rank[0])+","+str(rank[1]) for rank in ranks])
