@@ -72,6 +72,25 @@ class wDBG():
                     newkmerc += 1
                     self.edges[kmer] = 1
 
+    def get_branch_statistics(self):
+        """ Gets weights at each branch for modelling purposes """
+        branch_weights = []
+        for kmer, weight in self.edges.items():
+            indegree_weights = []
+            outdegree_weights = []
+            for b in "ATCG":
+                new_outkmer = kmer[1:] + b
+                new_inkmer = b + kmer[:-1]
+                if new_inkmer in self.edges:
+                    indegree_weights.append(self.edges[new_inkmer])
+                if new_outkmer in self.edges:
+                    outdegree_weights.append(self.edges[new_outkmer])
+            if len(outdegree_weights) > 1:
+                branch_weights.append(outdegree_weights)
+            if len(indegree_weights) > 1:
+                branch_weights.append(indegree_weights)
+        return sorted(branch_weights, key = lambda x:sum(x))
+
     def get_statistics(self):
         """ Gets statistics from the graph, such as: """
         """ Degree distribution, branch ratios, weight distribution"""
@@ -84,6 +103,7 @@ class wDBG():
         std_weight = np.std(weights)
         degrees = []
         branch_ratios = []
+        branch_losses = []
         for kmer, weight in self.edges.items():
             d = 0
             indegree_weights = []
@@ -100,15 +120,20 @@ class wDBG():
             if len(outdegree_weights) > 1:
                 branch_ratio = max(outdegree_weights)/sum(outdegree_weights)
                 branch_ratios.append(branch_ratio)
+                branch_losses.append(sum(outdegree_weights)-max(outdegree_weights))
             if len(indegree_weights) > 1:
                 branch_ratio = max(indegree_weights)/sum(indegree_weights)
                 branch_ratios.append(branch_ratio)
+                branch_losses.append(sum(indegree_weights)-max(indegree_weights))
             degrees.append(d)
+        mean_branch_loss = np.mean(branch_losses)
+        std_branch_loss = np.std(branch_losses)
+        max_branch_loss = max(branch_losses)
         mean_degree = np.mean(degrees)
         std_degree= np.std(degrees)
         mean_bratio = np.mean(branch_ratios)
         std_bratio = np.std(branch_ratios)
-        return n_kmers, total_weight, mean_weight, std_weight, mean_degree, std_degree, mean_bratio, std_bratio
+        return n_kmers, total_weight, mean_weight, std_weight, mean_degree, std_degree, mean_bratio, std_bratio, mean_branch_loss, std_branch_loss, max_branch_loss
 
     def get_start_positions(self):
         """ Gets positions in the graph that have no inward edge """

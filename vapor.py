@@ -82,7 +82,7 @@ def main(args):
     wdbg = vp.wDBG(reads, args.k)
     if args.statistics == True:
         sys.stderr.write("Fetching statistics\n")
-        statistics = wdbg.get_statistics()
+        statistics = wdbg.get_branch_statistics()
 
     # Cull any kmers that are not present in the reference kmers
     sys.stderr.write("Culling kmers, beginning with %s\n" % len(wdbg.edges))
@@ -111,7 +111,6 @@ def main(args):
         strranks = "\t".join([str(rank[0])+","+str(rank[1]) for rank in ranks])
         strcls = ",".join([seqsh[c].replace(" ", "_") for c in cls])
         print(str(score)+"\t"+str(len(reads))+"\t"+ strcls + "\t" + strstats + "\t" + strranks)
-
     else:
         if args.return_seqs == True:
             for c in cls:
