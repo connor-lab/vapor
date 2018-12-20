@@ -139,6 +139,7 @@ if __name__ == '__main__':
     group2 = parser.add_mutually_exclusive_group()
     group2.add_argument("--return_seqs", action="store_true")
     group2.add_argument("--statistics", action="store_true")
+    group2.add_argument("-o", "--output_prefix", type=str, help="Prefix to write full output to, stout by default", nargs='?', default=None)
 
     parser.add_argument("-w", "--weight", type=int, help="Minimum Path Weight [default=20]", nargs='?', default=20)
     parser.add_argument("-k", type=int, help="Kmer Length [15 > int > 30, default=21]", nargs='?', default=21)
@@ -146,7 +147,6 @@ if __name__ == '__main__':
     parser.add_argument("-fa", type=str, help="Fasta file")
     parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
     parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample [default=all reads]", nargs='?', default=None)
-    parser.add_argument("-o", "--output_prefix", type=str, help="Prefix to write full output to, stout by default", nargs='?', default=None)
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
