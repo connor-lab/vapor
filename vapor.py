@@ -105,6 +105,12 @@ def main(args):
     cdbg = vp.cDBG.from_strings_and_subgraph(seqs, args.k, wdbg)
     path_results = cdbg.classify(wdbg, seqs, args.weight)
     score, cls, ranks = path_results
+
+    # Test how well the best result covers the wdbg
+    topseq = seqs[cls[0]]
+    kmerfrac = wdbg.get_kmer_frac(topseq)
+    wkmerfrac = wdbg.get_weighted_kmer_frac(topseq)
+
     # Finally, classify
     if args.statistics == True:
         strstats = "\t".join(list(map(str, statistics)))
@@ -117,7 +123,7 @@ def main(args):
             for c in cls:
                 print(seqsh[c])
                 print(seqs[c])
-        elif args.o != None:
+        elif args.output_prefix != None:
             scores_outf = open(args.o + ".out", "w")
             scores_outf.write(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
             scores_outf.close()
@@ -127,7 +133,7 @@ def main(args):
                 seqs_outf.write(seqs[c]+"\n")
             seqs_outf.close()
         else:
-            print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+            print(str(score)+"\t"+str(len(reads))+"\t"+str(kmerfrac)+"\t"+str(wkmerfrac)+"\t"+",".join([seqsh[c] for c in cls]))
         sys.stderr.write("\nClassification Complete\n")
 
 if __name__ == '__main__':
@@ -145,7 +151,7 @@ if __name__ == '__main__':
     parser.add_argument("-fa", type=str, help="Fasta file")
     parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
     parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample [default=all reads]", nargs='?', default=None)
-    parser.add_argument("-o", "--output_prefix", type=str, help="Prefix to write full output to, stout by default", default=None)
+    parser.add_argument("-o", "--output_prefix", type=str, help="Prefix to write full output to, stout by default", nargs='?', default=None)
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
