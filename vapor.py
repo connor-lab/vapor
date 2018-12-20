@@ -1,22 +1,24 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """ 
 usage: vapor.py [-h] [-q] [-k K] [-s S] [-fa FA]
                               [-fq FQ [FQ ...]]
 
+required arguments:
+    -fa FA              Input fasta file
+    -fq FQ [FQ ...]     Input fastq file/files
+
 optional arguments:
     -h, --help          Show this help message and exit
     -q, --quiet         Suppresses output to stderr
     --return_seqs       Returns a fasta of sequences, instead of hits       
     --statistics        Returns graph and classification statistics for model building
-
+    -o                  Combined output to files with prefix O, none by default
     -k                  Kmer length [21]
     -t, --threshold     Pre-Filtering Score threshold [0.7]
     -s, --subsample     Number of reads to subsample, no subsampling by default
     -w, --weight        Min path weight to consider [20]
-    -fa FA              Fasta file
-    -fq FQ [FQ ...]     Fastq file/files
 
 Example:
     vapor.py -fa HA_sequences.fa -fq reads_1.fq
@@ -115,6 +117,15 @@ def main(args):
             for c in cls:
                 print(seqsh[c])
                 print(seqs[c])
+        elif args.o != None:
+            scores_outf = open(args.o + ".out", "w")
+            scores_outf.write(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+            scores_outf.close()
+            seqs_outf = open(args.o + ".fa", "w")
+            for c in cls:
+                seqs_outf.write(seqsh[c]+"\n")
+                seqs_outf.write(seqs[c]+"\n")
+            seqs_outf.close()
         else:
             print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
         sys.stderr.write("\nClassification Complete\n")
@@ -134,6 +145,7 @@ if __name__ == '__main__':
     parser.add_argument("-fa", type=str, help="Fasta file")
     parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
     parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample [default=all reads]", nargs='?', default=None)
+    parser.add_argument("-o", "--output_prefix", type=str, help="Prefix to write full output to, stout by default", default=None)
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
