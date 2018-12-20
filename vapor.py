@@ -124,10 +124,10 @@ def main(args):
                 print(seqsh[c])
                 print(seqs[c])
         elif args.output_prefix != None:
-            scores_outf = open(args.o + ".out", "w")
-            scores_outf.write(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+            scores_outf = open(args.output_prefix + ".out", "w")
+            scores_outf.write(str(score)+"\t"+str(len(reads))+"\t"+str(kmerfrac)+"\t"+str(wkmerfrac)+"\t"+",".join([seqsh[c] for c in cls]))
             scores_outf.close()
-            seqs_outf = open(args.o + ".fa", "w")
+            seqs_outf = open(args.output_prefix + ".fa", "w")
             for c in cls:
                 seqs_outf.write(seqsh[c]+"\n")
                 seqs_outf.write(seqs[c]+"\n")

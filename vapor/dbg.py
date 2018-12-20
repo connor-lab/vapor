@@ -195,6 +195,23 @@ class wDBG():
         sys.stderr.write("\n")
         return final_paths          
 
+    def get_kmer_frac(self, seq):
+        c = 0
+        for i in range(len(seq)-self.k+1):
+            kmer = seq[i:i+self.k]
+            if kmer in self.edges:
+                c += 1
+        return c/float(len(self.edges))
+
+    def get_weighted_kmer_frac(self, seq):
+        c = 0
+        for i in range(len(seq)-self.k+1):
+            kmer = seq[i:i+self.k]
+            if kmer in self.edges:
+                c += self.edges[kmer]
+        total_weight = sum([w for e,w in self.edges.items()])
+        return c/float(total_weight)
+
 class cDBG():
     """ Basic DBG with additional color information """
     def __init__(self, k):
