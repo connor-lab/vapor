@@ -106,11 +106,6 @@ def main(args):
     path_results = cdbg.classify(wdbg, seqs, args.weight)
     score, cls, ranks = path_results
 
-    # Test how well the best result covers the wdbg
-    topseq = seqs[cls[0]]
-    kmerfrac = wdbg.get_kmer_frac(topseq)
-    wkmerfrac = wdbg.get_weighted_kmer_frac(topseq)
-
     # Finally, classify
     if args.statistics == True:
         strstats = "\t".join(list(map(str, statistics)))
@@ -125,7 +120,7 @@ def main(args):
                 print(seqs[c])
         elif args.output_prefix != None:
             scores_outf = open(args.output_prefix + ".out", "w")
-            scores_outf.write(str(score)+"\t"+str(len(reads))+"\t"+str(kmerfrac)+"\t"+str(wkmerfrac)+"\t"+",".join([seqsh[c] for c in cls]))
+            scores_outf.write(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
             scores_outf.close()
             seqs_outf = open(args.output_prefix + ".fa", "w")
             for c in cls:
@@ -133,7 +128,7 @@ def main(args):
                 seqs_outf.write(seqs[c]+"\n")
             seqs_outf.close()
         else:
-            print(str(score)+"\t"+str(len(reads))+"\t"+str(kmerfrac)+"\t"+str(wkmerfrac)+"\t"+",".join([seqsh[c] for c in cls]))
+            print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
         sys.stderr.write("\nClassification Complete\n")
 
 if __name__ == '__main__':
