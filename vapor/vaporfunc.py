@@ -21,6 +21,8 @@ def rev_comp(read):
 
 def parse_and_prefilter(fqs, dbkmers, threshold, k):
     """ Parses fastq files fqs, and filters them """
+    nraw = 0
+    reads = []
     c = 0
     M = float(len(dbkmers))
     seen = set()
@@ -31,22 +33,28 @@ def parse_and_prefilter(fqs, dbkmers, threshold, k):
             f = open(fq,'r')
         for line in f:
             if c == 1:
-                tmpseq = line.strip()
-                kcount = 0
+                nraw += 1
+                stripped = line.strip()
+                ktotal = int(len(stripped)/k)
                 # Don't allow Ns in read
                 # Don't allow reads < k
-                if "N" not in tmpseq and len(tmpseq) >= k and tmpseq not in seen:
-                    seen.add(tmpseq)
-                    for i in range(0, len(tmpseq), k):
-                        if tmpseq[i:i+k] in dbkmers:
-                            kcount += 1
-                    # Only allow reads with a given number of words in dbkmers
-                    if k*kcount/M < threshold:
-                        yield tmpseq
+                rev = rev_comp(stripped)
+                for tmpseq in [stripped, rev]: 
+                    kcount = 0
+                    if "N" not in tmpseq and len(tmpseq) >= k:
+                        seen.add(tmpseq)
+                        for i in range(0, len(tmpseq)-k+1, k):
+                            if tmpseq[i:i+k] in dbkmers:
+                                kcount += 1
+                                if kcount/ktotal > threshold:
+                                    reads.append(tmpseq)
+                                    # As soon as our threshold is exceeded, break
+                                    break
             c += 1                  
             if c == 4:
                 c = 0
         f.close()
+    return reads, nraw
 
 def parse_fasta_uniq(fasta, filter_Ns=True):
     """ Gets unique sequences from a fasta, with filtering of Ns"""
