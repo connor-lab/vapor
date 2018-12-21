@@ -16,7 +16,7 @@ optional arguments:
     --statistics        Returns graph and classification statistics for model building
     -o                  Combined output to files with prefix O, none by default
     -k                  Kmer length [21]
-    -t, --threshold     Pre-Filtering Score threshold [0.7]
+    -t, --threshold     Pre-Filtering Score threshold [0.0] ; generally only affects computation time, not results
     -s, --subsample     Number of reads to subsample, no subsampling by default
     -w, --weight        Min path weight to consider [20]
 
@@ -69,11 +69,11 @@ def main(args):
 
     sys.stderr.write("Filtering reads\n")
     # Parse and pre-filter reads
-    reads = [r for r in vp.parse_and_prefilter(args.fq, dbkmers, args.threshold, args.k)]
+    reads, nrawreads = vp.parse_and_prefilter(args.fq, dbkmers, args.threshold, args.k)
     sys.stderr.write("Subsampling reads\n")
     if args.subsample != None:
         reads = vp.subsample(reads, args.subsample)
-    sys.stderr.write(str(len(reads)) + " reads survived\n")
+    sys.stderr.write("%d of %d reads survived\n" % (len(reads),nrawreads))
 
     # Check there are still sequences remaining
     if len(reads) == 0:
@@ -143,7 +143,7 @@ if __name__ == '__main__':
 
     parser.add_argument("-w", "--weight", type=int, help="Minimum Path Weight [default=20]", nargs='?', default=20)
     parser.add_argument("-k", type=int, help="Kmer Length [15 > int > 30, default=21]", nargs='?', default=21)
-    parser.add_argument("-t", "--threshold", type=float, help="Kmer filtering threshold [0 > float > 1, default=0.7]", nargs='?', default=0.7)
+    parser.add_argument("-t", "--threshold", type=float, help="Kmer filtering threshold [0 > float > 1, default=0.0]", nargs='?', default=0.0)
     parser.add_argument("-fa", type=str, help="Fasta file")
     parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
     parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample [default=all reads]", nargs='?', default=None)
@@ -160,8 +160,8 @@ if __name__ == '__main__':
     max_thres = 1
     min_thres = 0
 
-    if args.k < max_kmer and args.k > min_kmer:
-        if args.threshold < max_thres and args.threshold > min_thres:
+    if args.k <= max_kmer and args.k >= min_kmer:
+        if args.threshold <= max_thres and args.threshold >= min_thres:
             main(args)
         else:
             sys.stderr.write("\nPlease input valid score threshold for prefiltering ({} to {}) \n \n".format(min_thres, max_thres))
