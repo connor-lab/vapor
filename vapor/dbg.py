@@ -41,10 +41,11 @@ def remove_overlaps(paths):
                 pi = paths[i]
                 pj = paths[j]
                 if len(set(pi.edges.keys()) & set(pj.edges.keys())) > 0:
-                    if pi.score > pj.score:
+                    if pi.score < pj.score:
                         flagarr[j] = 1
                     else:
                         flagarr[i] = 1
+
     for i in range(len(flagarr)):
         if flagarr[i] == 0:
             yield paths[i]
@@ -269,7 +270,7 @@ class cDBG():
             z += 1
         sys.stderr.write("\n")
 
-    def classify(self, wdbg, seqs, min_path_weight=20., cull_overlapping=True):
+    def classify(self, wdbg, seqs, min_path_weight=100., cull_overlapping=True):
         """ Classifies a wdbg """
 
         # First get paths
@@ -290,12 +291,11 @@ class cDBG():
         total_colors = []
         # Next get arrays of color classes for paths
         for pi, path in enumerate(paths):
+            sys.stderr.write(str(pi)+"        \r")
             colors = []   
-            assert path.score > 0
             seq = path.get_string()
             kmers = (seq[i:i+self.k] for i in range(len(seq)-self.k+1))
             for kmer in kmers:
-                assert kmer in wdbg.edges or kmer in self.edges
                 if kmer in self.edges:
                     colors.append(self.edges[kmer])
             assert len(colors) > 0
@@ -305,7 +305,9 @@ class cDBG():
         # Lastly contiguize the colors for scoring
         # Need to do it individually for path, and then aggregate them
         path_scores = []
-        for colors in total_colors:
+        for ci, colors in enumerate(total_colors):
+            sys.stderr.write(str(ci)+"        \r")
+
             sumo = np.zeros(len(seqs))
             color_flag = np.zeros(self.n)
             for c in colors:
