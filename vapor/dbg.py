@@ -15,7 +15,7 @@ class Path():
         self.cyclic = False
     def add_edge(self, edge, score):
         if edge in self.edges:
-            print("Cycling")
+            sys.stderr.write("Cycle detected\n")
             self.cyclic = True
         if edge not in self.edges:
             self.edges[edge] = []
@@ -269,13 +269,16 @@ class cDBG():
             z += 1
         sys.stderr.write("\n")
 
-    def classify(self, wdbg, seqs, min_path_weight=20.):
+    def classify(self, wdbg, seqs, min_path_weight=20., cull_overlapping=True):
         """ Classifies a wdbg """
 
         # First get paths
-        paths = [p for p in wdbg.get_paths()]
-        paths = [p for p in remove_overlaps(paths) if p.score > min_path_weight]
-        sys.stderr.write("Got %d fragments\n" % len(paths))
+        paths = [p for p in wdbg.get_paths() if p.score > min_path_weight]
+        n_paths_initial = len(paths)
+        if cull_overlapping == True:
+            paths = [p for p in remove_overlaps(paths)]
+        n_paths_surviving = len(paths)
+        sys.stderr.write("Got %d paths from %d\n" % (n_paths_surviving, n_paths_initial))
         if len(paths) == 0:
             sys.stderr.write("No paths with a greater weight than %d found. Please try a lower threshold (-w) than %d \n" % (min_path_weight, min_path_weight))
             sys.exit(1)
@@ -283,7 +286,7 @@ class cDBG():
         mpl = max([len(p.get_string()) for p in paths])
         sys.stderr.write("%d paths found\n" % len(paths))
         sys.stderr.write("Maximum path length: %d\n" % mpl)
-
+        sys.stderr.write("Coloring paths...\n")
         total_colors = []
         # Next get arrays of color classes for paths
         for pi, path in enumerate(paths):
@@ -298,6 +301,7 @@ class cDBG():
             assert len(colors) > 0
             total_colors.append(colors)
 
+        sys.stderr.write("Scoring colors...\n")
         # Lastly contiguize the colors for scoring
         # Need to do it individually for path, and then aggregate them
         path_scores = []
