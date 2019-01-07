@@ -15,7 +15,7 @@ optional arguments:
     --return_seqs       Returns a fasta of sequences, instead of hits       
     -o                  Combined output to files with prefix O, none by default
     -k                  Kmer length [21]
-    -t, --threshold     Pre-Filtering Score threshold [0.0] ; generally only affects computation time, not results
+    -t, --threshold     Pre-Filtering Score threshold [0.0]
     -s, --subsample     Number of reads to subsample, no subsampling by default
     -w, --weight        Min path weight to consider [20]
 
@@ -102,7 +102,7 @@ def main(args):
 
     # Build cDBG; don't build nodes that are not used, though
     cdbg = vp.cDBG.from_strings_and_subgraph(seqs, args.k, wdbg)
-    path_results = cdbg.classify(wdbg, seqs, args.weight)
+    path_results = cdbg.classify(wdbg, seqs, seqsh, args.weight)
     score, cls = path_results
 
     if args.return_seqs == True:

@@ -31,7 +31,7 @@ class Path():
             s += edge[-1]
         return s
 
-def remove_overlaps(paths):
+def remove_overlaps(paths, max_intersection=0.):
     """ Greedily resolving conflicting paths """
     # Removes the lowest scoring of a pair with nonzero kmer set intersection """
     flagarr = [0 for p in paths]
@@ -40,11 +40,12 @@ def remove_overlaps(paths):
             if flagarr[i] == 0 and flagarr[j] == 0:
                 pi = paths[i]
                 pj = paths[j]
-                if len(set(pi.edges.keys()) & set(pj.edges.keys())) > 0:
+                intersection = set(pi.edges.keys()) & set(pj.edges.keys())
+                if len(intersection) > max_intersection:
                     if pi.score < pj.score:
-                        flagarr[j] = 1
-                    else:
                         flagarr[i] = 1
+                    else:
+                        flagarr[j] = 1
 
     for i in range(len(flagarr)):
         if flagarr[i] == 0:
@@ -270,7 +271,7 @@ class cDBG():
             z += 1
         sys.stderr.write("\n")
 
-    def classify(self, wdbg, seqs, min_path_weight=100., cull_overlapping=True):
+    def classify(self, wdbg, seqs, seqsh, min_path_weight=100., cull_overlapping=True):
         """ Classifies a wdbg """
 
         # First get paths
@@ -283,45 +284,43 @@ class cDBG():
         if len(paths) == 0:
             sys.stderr.write("No paths with a greater weight than %d found. Please try a lower threshold (-w) than %d \n" % (min_path_weight, min_path_weight))
             sys.exit(1)
+
+#        print("double checking path weights")
+#        for path in paths:
+#            s = path.get_string()
+#            kmers = (s[i:i+self.k] for i in range(len(s)-self.k+1))
+#            weights = [wdbg.edges[kmer] for kmer in kmers]
+#            print(weights)
+#            print(sum(weights))            
         
         mpl = max([len(p.get_string()) for p in paths])
         sys.stderr.write("%d paths found\n" % len(paths))
         sys.stderr.write("Maximum path length: %d\n" % mpl)
         sys.stderr.write("Coloring paths...\n")
-        total_colors = []
+        path_scores = []
         # Next get arrays of color classes for paths
         for pi, path in enumerate(paths):
             sys.stderr.write(str(pi)+"        \r")
-            colors = []   
             seq = path.get_string()
             kmers = (seq[i:i+self.k] for i in range(len(seq)-self.k+1))
+            sumo = np.zeros(len(seqs))
+            color_flag = np.zeros(self.n)           
+
             for kmer in kmers:
                 if kmer in self.edges:
-                    colors.append(self.edges[kmer])
-            assert len(colors) > 0
-            total_colors.append(colors)
-
-        sys.stderr.write("Scoring colors...\n")
-        # Lastly contiguize the colors for scoring
-        # Need to do it individually for path, and then aggregate them
-        path_scores = []
-        for ci, colors in enumerate(total_colors):
-            sys.stderr.write(str(ci)+"        \r")
-
-            sumo = np.zeros(len(seqs))
-            color_flag = np.zeros(self.n)
-            for c in colors:
-                arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)[1:]
-                sumo += (self.k * (1-color_flag) + color_flag) * arr
+                    c = self.edges[kmer]
+                    weight = wdbg.edges[kmer]
+                    arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)[1:]
+                    sumo += (self.k * (1-color_flag) + color_flag) * arr * weight
+                    color_flag = arr
             path_scores.append(sumo)
 
         # Now aggregate the scores for each path and rank
         aggsumo = np.zeros(len(seqs))
-        for sumo in path_scores:
+        for si, sumo in enumerate(path_scores):
             aggsumo += sumo
         maxs = max(aggsumo)
         # Take the highest indices, noting they are backwards wrt 
-        maxi = [i for i in range(len(aggsumo)) if aggsumo[i] == maxs]            
 
         # Order of the classes is different 
         maxi_cls = [len(aggsumo)-i-1 for i in range(len(aggsumo)) if aggsumo[i] == maxs]       
