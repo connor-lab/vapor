@@ -320,21 +320,9 @@ class cDBG():
         maxs = max(aggsumo)
         # Take the highest indices, noting they are backwards wrt 
         maxi = [i for i in range(len(aggsumo)) if aggsumo[i] == maxs]            
-        # Finally, for the purposes of coinfection detection, we are going to 
-        # Examine the worst rank that this score gets, in each path
-        ranks = []
-        for pi,sumo in enumerate(path_scores):
-            maxi_path_score = sumo[maxi[0]]
-            sortind = np.argsort(sumo)[::-1]
-            sorted_scores = sumo[sortind]
-            path_weight = paths[pi].score
-            for i in range(len(sorted_scores)):
-                if sorted_scores[i] <= maxi_path_score:
-                    ranks.append([i,path_weight])
-                    break
 
         # Order of the classes is different 
         maxi_cls = [len(aggsumo)-i-1 for i in range(len(aggsumo)) if aggsumo[i] == maxs]       
-        return maxs, maxi_cls, ranks
+        return maxs, maxi_cls
 
 

@@ -13,7 +13,6 @@ optional arguments:
     -h, --help          Show this help message and exit
     -q, --quiet         Suppresses output to stderr
     --return_seqs       Returns a fasta of sequences, instead of hits       
-    --statistics        Returns graph and classification statistics for model building
     -o                  Combined output to files with prefix O, none by default
     -k                  Kmer length [21]
     -t, --threshold     Pre-Filtering Score threshold [0.0] ; generally only affects computation time, not results
@@ -104,32 +103,24 @@ def main(args):
     # Build cDBG; don't build nodes that are not used, though
     cdbg = vp.cDBG.from_strings_and_subgraph(seqs, args.k, wdbg)
     path_results = cdbg.classify(wdbg, seqs, args.weight)
-    score, cls, ranks = path_results
+    score, cls = path_results
 
-    # Finally, classify
-    if args.statistics == True:
-        strstats = "\t".join(list(map(str, statistics)))
-        score, cls, ranks = path_results
-        strranks = "\t".join([str(rank[0])+","+str(rank[1]) for rank in ranks])
-        strcls = ",".join([seqsh[c].replace(" ", "_") for c in cls])
-        print(str(score)+"\t"+str(len(reads))+"\t"+ strcls + "\t" + strstats + "\t" + strranks)
+    if args.return_seqs == True:
+        for c in cls:
+            print(seqsh[c])
+            print(seqs[c])
+    elif args.output_prefix != None:
+        scores_outf = open(args.output_prefix + ".out", "w")
+        scores_outf.write(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+        scores_outf.close()
+        seqs_outf = open(args.output_prefix + ".fa", "w")
+        for c in cls:
+            seqs_outf.write(seqsh[c]+"\n")
+            seqs_outf.write(seqs[c]+"\n")
+        seqs_outf.close()
     else:
-        if args.return_seqs == True:
-            for c in cls:
-                print(seqsh[c])
-                print(seqs[c])
-        elif args.output_prefix != None:
-            scores_outf = open(args.output_prefix + ".out", "w")
-            scores_outf.write(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
-            scores_outf.close()
-            seqs_outf = open(args.output_prefix + ".fa", "w")
-            for c in cls:
-                seqs_outf.write(seqsh[c]+"\n")
-                seqs_outf.write(seqs[c]+"\n")
-            seqs_outf.close()
-        else:
-            print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
-        sys.stderr.write("\nClassification Complete\n")
+        print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+    sys.stderr.write("\nClassification Complete\n")
 
 if __name__ == '__main__':
     # CLI
