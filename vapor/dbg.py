@@ -271,7 +271,7 @@ class cDBG():
             z += 1
         sys.stderr.write("\n")
 
-    def classify(self, wdbg, seqs, seqsh, min_path_weight=100., cull_overlapping=True):
+    def classify(self, wdbg, seqs, return_paths=False, min_path_weight=100., cull_overlapping=True):
         """ Classifies a wdbg """
 
         # First get paths
@@ -284,20 +284,13 @@ class cDBG():
         if len(paths) == 0:
             sys.stderr.write("No paths with a greater weight than %d found. Please try a lower threshold (-w) than %d \n" % (min_path_weight, min_path_weight))
             sys.exit(1)
-
-#        print("double checking path weights")
-#        for path in paths:
-#            s = path.get_string()
-#            kmers = (s[i:i+self.k] for i in range(len(s)-self.k+1))
-#            weights = [wdbg.edges[kmer] for kmer in kmers]
-#            print(weights)
-#            print(sum(weights))            
-        
+       
         mpl = max([len(p.get_string()) for p in paths])
         sys.stderr.write("%d paths found\n" % len(paths))
         sys.stderr.write("Maximum path length: %d\n" % mpl)
         sys.stderr.write("Coloring paths...\n")
         path_scores = []
+        path_results = []
         # Next get arrays of color classes for paths
         for pi, path in enumerate(paths):
             sys.stderr.write(str(pi)+"        \r")
@@ -314,8 +307,16 @@ class cDBG():
                     color_flag = arr
             # weight the path by it's total score
             # per-kmer too sensitive to coverage noise?
-            sumo *= path.score
-            path_scores.append(sumo)
+            if return_paths == True:
+                maxs = max(sumo)
+                maxi_cls = [len(sumo)-i-1 for i in range(len(sumo)) if sumo[i] == maxs]
+                path_results.append((maxs, path.score, len(path.path), maxi_cls))
+            else:
+                sumo *= path.score
+                path_scores.append(sumo)
+
+        if return_paths == True:
+            return path_results
 
         # Now aggregate the scores for each path and rank
         aggsumo = np.zeros(len(seqs))
@@ -323,7 +324,6 @@ class cDBG():
             aggsumo += sumo
         maxs = max(aggsumo)
         # Take the highest indices, noting they are backwards wrt 
-
         # Order of the classes is different 
         maxi_cls = [len(aggsumo)-i-1 for i in range(len(aggsumo)) if aggsumo[i] == maxs]       
         return maxs, maxi_cls

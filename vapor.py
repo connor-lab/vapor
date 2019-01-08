@@ -81,9 +81,6 @@ def main(args):
 
     # Build the wDBG from reads
     wdbg = vp.wDBG(reads, args.k)
-    if args.statistics == True:
-        sys.stderr.write("Fetching statistics\n")
-        statistics = wdbg.get_statistics()
 
     # Cull any kmers that are not present in the reference kmers
     sys.stderr.write("Culling kmers, beginning with %s\n" % len(wdbg.edges))
@@ -102,35 +99,38 @@ def main(args):
 
     # Build cDBG; don't build nodes that are not used, though
     cdbg = vp.cDBG.from_strings_and_subgraph(seqs, args.k, wdbg)
-    path_results = cdbg.classify(wdbg, seqs, seqsh, args.weight)
-    score, cls = path_results
-
-    if args.return_seqs == True:
-        for c in cls:
-            print(seqsh[c])
-            print(seqs[c])
-    elif args.output_prefix != None:
-        scores_outf = open(args.output_prefix + ".out", "w")
-        scores_outf.write(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
-        scores_outf.close()
-        seqs_outf = open(args.output_prefix + ".fa", "w")
-        for c in cls:
-            seqs_outf.write(seqsh[c]+"\n")
-            seqs_outf.write(seqs[c]+"\n")
-        seqs_outf.close()
+    path_results = cdbg.classify(wdbg, seqs, args.return_paths, args.weight)
+    if args.return_paths == False:
+        score, cls = path_results
+        if args.return_seqs == True:
+            for c in cls:
+                print(seqsh[c])
+                print(seqs[c])
+        elif args.output_prefix != None:
+            scores_outf = open(args.output_prefix + ".out", "w")
+            scores_outf.write(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+            scores_outf.close()
+            seqs_outf = open(args.output_prefix + ".fa", "w")
+            for c in cls:
+                seqs_outf.write(seqsh[c]+"\n")
+                seqs_outf.write(seqs[c]+"\n")
+            seqs_outf.close()
+        else:
+            print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
     else:
-        print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+        for score, weight, length, cls in path_results:
+            print(str(score)+"\t"+str(weight)+"\t"+str(length)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
     sys.stderr.write("\nClassification Complete\n")
 
 if __name__ == '__main__':
     # CLI
-    parser = argparse.ArgumentParser(description="Do some sweet viral classification")
+    parser = argparse.ArgumentParser(description="Do some viral classification!")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-q", "--quiet", action="store_true")
     group2 = parser.add_mutually_exclusive_group()
     group2.add_argument("--return_seqs", action="store_true")
-    group2.add_argument("--statistics", action="store_true")
     group2.add_argument("-o", "--output_prefix", type=str, help="Prefix to write full output to, stout by default", nargs='?', default=None)
+    group2.add_argument("--return_paths", action="store_true", default=False)
 
     parser.add_argument("-w", "--weight", type=int, help="Minimum Path Weight [default=20]", nargs='?', default=20)
     parser.add_argument("-k", type=int, help="Kmer Length [15 > int > 30, default=21]", nargs='?', default=21)
