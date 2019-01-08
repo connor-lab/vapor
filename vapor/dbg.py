@@ -309,10 +309,12 @@ class cDBG():
             for kmer in kmers:
                 if kmer in self.edges:
                     c = self.edges[kmer]
-                    weight = wdbg.edges[kmer]
                     arr = np.fromstring(np.binary_repr(c), dtype='S1').astype(int)[1:]
-                    sumo += (self.k * (1-color_flag) + color_flag) * arr * weight
+                    sumo += (self.k * (1-color_flag) + color_flag) * arr
                     color_flag = arr
+            # weight the path by it's total score
+            # per-kmer too sensitive to coverage noise?
+            sumo *= path.score
             path_scores.append(sumo)
 
         # Now aggregate the scores for each path and rank

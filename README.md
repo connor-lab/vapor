@@ -12,8 +12,9 @@ optional arguments:
     -q, --quiet         Suppresses output to stderr
     --return_seqs       Returns a fasta of sequences, instead of hits       
 
+    -o                  Combined output to files with prefix O, none by default
     -k K                Kmer length [21]
-    -s S                Pre-Filtering Score threshold [0.7]
+    -s S                Pre-Filtering Score threshold [0.0]
     -fa FA              Fasta file
     -fq FQ [FQ ...]     Fastq file/files, can be gzipped
 
