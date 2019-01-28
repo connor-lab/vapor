@@ -14,12 +14,14 @@ optional arguments:
 
     -o                  Combined output to files with prefix O, none by default
     -k K                Kmer length [21]
-    -s S                Pre-Filtering Score threshold [0.0]
+    -t T                Pre-Filtering Score threshold [0.0]
+    -s S                Number of reads to sub-sample
+    -w W                Minimum path weight to consider [20]
     -fa FA              Fasta file
     -fq FQ [FQ ...]     Fastq file/files, can be gzipped
 
 Example:
-    vapor.py -k 21 -s 0.7 -fa HA_sequences.fa -fq reads_1.fq.gz
+    vapor.py -fa HA_sequences.fa -fq reads_1.fq.gz
 
 Author: Joel Southgate
 Email (for inquiries): southgateJA@cardiff.ac.uk
@@ -46,3 +48,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+TESTING
+
+To test, run:
+
+    vapor.py -fq tests/11.fq -fa tests/HA_sample.fa
+
+which should yield:
+
+    >cds:ADO12563 A/Chile/3935/2009 2009/07/07
