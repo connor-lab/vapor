@@ -13,6 +13,7 @@ optional arguments:
     -h, --help          Show this help message and exit
     -q, --quiet         Suppresses output to stderr
     --return_seqs       Returns a fasta of sequences, instead of hits       
+    --return_paths      Return individual path scores, don't aggregate
     -o                  Combined output to files with prefix O, none by default
     -k                  Kmer length [21]
     -t, --threshold     Pre-Filtering Score threshold [0.0]
@@ -80,26 +81,25 @@ def main(args):
         sys.exit(1)
 
     # Build the wDBG from reads
-    wdbg = vp.wDBG(reads, args.k)
+    wdbg = vp.wDBG(reads, args.k, dbkmers)
 
     # Cull any kmers that are not present in the reference kmers
-    sys.stderr.write("Culling kmers, beginning with %s\n" % len(wdbg.edges))
-    wdbg.cull(dbkmers)
-    sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
+#    sys.stderr.write("Culling kmers, beginning with %s\n" % len(wdbg.edges))
+#    wdbg.cull(dbkmers)
+#    sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
     if len(wdbg.edges) == 0:
         sys.stderr.write("Zero kmers remaining! None of the kmers in your reads were found in the database. More reads or a lower -k could help. \n")
         sys.exit(1)
         
-    sys.stderr.write("Getting start positions\n")
+#    sys.stderr.write("Getting start positions\n")
     # Get start positions for paths
-    wdbg.get_start_positions()
-    sys.stderr.write("%d start positions found\n" % len(wdbg.start_positions))
-    mew = max(wdbg.edges.items(), key = lambda x : x[1])[1]
-    sys.stderr.write("Largest edge weight: %d \n" % mew)
+#    wdbg.get_start_positions()
+#    sys.stderr.write("%d start positions found\n" % len(wdbg.start_positions))
+#    mew = max(wdbg.edges.items(), key = lambda x : x[1])[1]
+#    sys.stderr.write("Largest edge weight: %d \n" % mew)
 
     # Build cDBG; don't build nodes that are not used, though
-    cdbg = vp.cDBG.from_strings_and_subgraph(seqs, args.k, wdbg)
-    path_results = cdbg.classify(wdbg, seqs, args.return_paths, args.weight)
+    path_results = wdbg.classify(seqs, args.weight)
     if args.return_paths == False:
         score, cls = path_results
         if args.return_seqs == True:
