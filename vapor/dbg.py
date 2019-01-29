@@ -77,12 +77,6 @@ class wDBG():
     def query(self, seq):
         kmers = [seq[ki:ki+self.k] for ki in range(len(seq)-self.k+1)]
         # get brute score for debugging
-        raw_counts = []
-        for kmer in kmers:
-            if kmer in self.edges:
-                raw_counts.append(self.edges[kmer])
-            else:
-                raw_counts.append(0)
         deq_scores = self.deque_score_bases(kmers)            
         score = sum(deq_scores)
         return score, deq_scores
@@ -91,7 +85,11 @@ class wDBG():
         # ALLOW FOR PARTIAL MATCHES, WHEN WALKING
         # IF A KMER IS NOT FOUND, WE CAN CHECK HAMMING DISTANCES OF KMERS?
         # ATTEMPT TO `BRIDGE THE GAP' (FOR LATER)
-        scores = [self.query(seq) for seq in seqs]
+        scores = []
+        for si, seq in enumerate(seqs):
+            print(si)
+            scores.append(self.query(seq))
+    
         maxs = max(scores, key = lambda x:x[0])[0]
         maxcls = [si for si in range(len(seqs)) if scores[si][0] == maxs]
         inds = np.argsort([s[0] for s in scores])[::-1]
