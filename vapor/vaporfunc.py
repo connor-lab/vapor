@@ -6,10 +6,9 @@ import random
 
 def get_kmers(strings,k):
     """ Takes strings and returns a set of kmers """
-    kmers = set()
+    kmers = []
     for string in strings:
-        for i in range(len(string)-k+1):
-            kmers.add(string[i:i+k])
+        kmers.append([string[i:i+k] for i in range(len(string)-k+1)])
     return kmers
 
 def rev_comp(read):
@@ -64,9 +63,9 @@ def parse_fasta_uniq(fasta, filter_Ns=True):
     ss = []
     sseen = set()
     with open(fasta) as f:
-        for line in f:
+        for li, line in enumerate(f):
             l = line.strip()
-            if l[0] == ">":
+            if l[0] == ">" and li > 0:
                 if tmps not in sseen:
                     if ((filter_Ns == True) and "N" not in tmps) or filter_Ns == False:
                         hs.append(tmph)
