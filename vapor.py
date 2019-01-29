@@ -66,10 +66,14 @@ def main(args):
     # Get database kmers for filtering
     sys.stderr.write("Getting database kmers\n")
     dbkmers = vp.get_kmers(seqs, args.k)
+    dbkmersset = set()
+    for dbkmer in dbkmers:
+        dbkmersset.update(set(dbkmer))
+    sys.stderr.write("Got %d database kmers\n" % len(dbkmersset))
 
     sys.stderr.write("Filtering reads\n")
     # Parse and pre-filter reads
-    reads, nrawreads = vp.parse_and_prefilter(args.fq, dbkmers, args.threshold, args.k)
+    reads, nrawreads = vp.parse_and_prefilter(args.fq, dbkmersset, args.threshold, args.k)
     sys.stderr.write("Subsampling reads\n")
     if args.subsample != None:
         reads = vp.subsample(reads, args.subsample)
@@ -81,12 +85,12 @@ def main(args):
         sys.exit(1)
 
     # Build the wDBG from reads
-    wdbg = vp.wDBG(reads, args.k, dbkmers)
+    wdbg = vp.wDBG(reads, args.k, dbkmersset)
 
     # Cull any kmers that are not present in the reference kmers
 #    sys.stderr.write("Culling kmers, beginning with %s\n" % len(wdbg.edges))
 #    wdbg.cull(dbkmers)
-#    sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
+    sys.stderr.write("Got %d wdbg kmers\n" % len(wdbg.edges))
     if len(wdbg.edges) == 0:
         sys.stderr.write("Zero kmers remaining! None of the kmers in your reads were found in the database. More reads or a lower -k could help. \n")
         sys.exit(1)
@@ -99,7 +103,7 @@ def main(args):
 #    sys.stderr.write("Largest edge weight: %d \n" % mew)
 
     # Build cDBG; don't build nodes that are not used, though
-    path_results = wdbg.classify(seqs, seqsh, args.weight)
+    path_results = wdbg.classify(dbkmers, seqsh, args.weight)
     if args.return_paths == False:
         score, cls = path_results
         if args.return_seqs == True:

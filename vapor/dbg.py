@@ -9,6 +9,9 @@ class wDBG():
         """ Initialized with strings, k, and reference kmers """
         # Only explicitly store edges
         self.edges = {}
+        # Path cache to prevent re-computing
+        # Of paths between nodes
+        self.path_cache = {}
         self.k = k
         self.start_positions = set()
         self._build(strings, ref_kmers)
@@ -48,6 +51,7 @@ class wDBG():
 #            assert maxw >= self.edges[kmer]
         return scores
 
+
     def deque_score_bases(self, kmers):
         """ For each contiguous stretch of kmers that are present
             uses a deque to find local maxima
@@ -74,25 +78,27 @@ class wDBG():
         local_minima.append(array[deq[0]])
         return local_minima            
 
-    def query(self, seq):
-        kmers = [seq[ki:ki+self.k] for ki in range(len(seq)-self.k+1)]
+    def query(self, kmers):
+#        kmers = [seq[ki:ki+self.k] for ki in range(len(seq)-self.k+1)]
         # get brute score for debugging
         deq_scores = self.deque_score_bases(kmers)            
         score = sum(deq_scores)
-        return score, deq_scores
+        return score
 
-    def classify(self, seqs, seqsh, min_missing_kmers=100.):
+    def classify(self, kmersets, seqsh, n_threads):
+        # FILTER FIRST
+
         # ALLOW FOR PARTIAL MATCHES, WHEN WALKING
         # IF A KMER IS NOT FOUND, WE CAN CHECK HAMMING DISTANCES OF KMERS?
         # ATTEMPT TO `BRIDGE THE GAP' (FOR LATER)
         scores = []
-        for si, seq in enumerate(seqs):
-            print(si)
-            scores.append(self.query(seq))
+        for si, kmers in enumerate(kmersets):
+            scores.append(self.query(kmers))
     
-        maxs = max(scores, key = lambda x:x[0])[0]
-        maxcls = [si for si in range(len(seqs)) if scores[si][0] == maxs]
-        inds = np.argsort([s[0] for s in scores])[::-1]
+        maxs = max(scores, key = lambda x:x)
+        maxcls = [si for si in range(len(seqsh)) if scores[si] == maxs]
+
+        # resolve ties by completion
         return maxs, maxcls
 
 
