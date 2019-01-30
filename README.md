@@ -4,34 +4,38 @@ VAPOR is provided with a large set of reference fastas (> 20,000) for a given se
 
 USAGE:
 
-usage: vapor.py [-h] [-q] [-k K] [-s S] [-fa FA]
+    usage: vapor.py [-h] [-q] [-k K] [-s S] [-fa FA]
                               [-fq FQ [FQ ...]]
 
-optional arguments:
-    -h, --help          Show this help message and exit
-    -q, --quiet         Suppresses output to stderr
-    --return_seqs       Returns a fasta of sequences, instead of hits       
-    --return_best_n     Returns the highest scoring n queries
+    optional arguments:
+        -h, --help          Show this help message and exit
+        -q, --quiet         Suppresses output to stderr
+        --return_seqs       Returns a fasta of sequences, instead of hits       
+        --return_best_n     Returns the highest scoring n queries
 
-    -o                  Combined output to files with prefix O, none by default
-    -k K                Kmer length [21]
-    -t T                Pre-Filtering Score threshold [0.0]
-    -s S                Number of reads to sub-sample
-    -m, --min_kmer_prop
-                        Minimum proportion of kmers required [0.7]
-    -fa FA              Fasta file
-    -fq FQ [FQ ...]     Fastq file/files, can be gzipped
+        -o                  Combined output to files with prefix O, none by default
+        -k K                Kmer length [21]
+        -t T                Pre-Filtering Score threshold [0.0]
+        -s S                Number of reads to sub-sample
+        -m, --min_kmer_prop
+                            Minimum proportion of kmers required [0.7]
+        -fa FA              Fasta file
+        -fq FQ [FQ ...]     Fastq file/files, can be gzipped
 
 Example:
+
     vapor.py -fa HA_sequences.fa -fq reads_1.fq.gz
 
 Author: Joel Southgate
+
 Email (for inquiries): southgateJA@cardiff.ac.uk
 
 REQUIREMENTS
 
 Python 3.x
+
 NumPy >= 1.51.x
+
 BioPython >= 1.72
 
 COPYRIGHT
