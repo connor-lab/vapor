@@ -91,8 +91,6 @@ class wDBG():
         stringk = kmers[gapl] + "".join([kmer[-1] for kmer in kmers[gapl+1:gapr]])
         aln = pairwise2.align.globalxx(stringk, stringo, one_alignment_only=True)[0]
 #        print(aln, len(aln[1].replace("-","")))
-#        print(aln[0])
-#        print(aln[1])
         # finally need to pad
 #        if 
         for i in range(len(aln[0])-self.k+1):
@@ -101,11 +99,12 @@ class wDBG():
             if bi == bj:
                 kmerj = aln[1][i]
                 ki = i+1
-                while len(kmerj) < self.k:
+                while len(kmerj) < self.k and ki < len(aln[1]):
                     if aln[1][ki] != "-":
                         kmerj += aln[1][ki]
-                    ki += 1                
-                extra_scores.append(self.edges[kmerj])
+                    ki += 1 
+                if len(kmerj) == self.k:
+                    extra_scores.append(self.edges[kmerj])
         # Now pad the extra scores (this is in case the bridge is not as long as the query gap)
         if gapl == 0:
             extra_scores = [0]*(gapr-gapl-len(extra_scores)) + extra_scores
@@ -113,26 +112,18 @@ class wDBG():
              extra_scores += [0]*(gapr-gapl-len(extra_scores)) 
         return extra_scores
     
-    def get_weight_array(self, kmers):
+    def get_weight_array(self, kmers, max_gap_prop=0.2):
         array = []
-        array2 = []
         in_gap = False
         gapl = -1
         gapr = -1
+        gaps = []
         for ki, kmer in enumerate(kmers):
             if kmer in self.edges:
                 if in_gap == True:
                     gapr = ki
-                    search = self.search_gap(kmers, gapl, gapr)
-#                    print(array)
-                    array[gapl:gapr] = search
-#                    print(search)
-#                    print(array)
-#                    print(len(search), gapr-gapl)
-#                    print()
-                    assert len(search) == gapr-gapl
-#                    assert gapr-gapl != self.k
-   
+                    gaps.append((gapl, gapr))
+  
                 in_gap = False
                 array.append(self.edges[kmer])
             else:
@@ -140,6 +131,17 @@ class wDBG():
                     gapl = ki
                 in_gap = True
                 array.append(0)
+        if in_gap == True:
+            gapr = len(kmers)
+            gaps.append((gapl, gapr))
+        # Only fill in gaps if it is considered a close match
+        gapsum = 0
+        for gapl, gapr in gaps:
+            gapsum += gapr-gapl
+        if gapsum/len(kmers) < max_gap_prop:
+            for gapl, gapr in gaps:
+                search = self.search_gap(kmers, gapl, gapr)
+                array[gapl:gapr] = search
         return array        
 
     def deque_score_bases(self, array):
@@ -175,7 +177,7 @@ class wDBG():
         score = sum(deq_scores)
         return score
 
-    def classify(self, kmersets, seqsh, n_threads):
+    def classify(self, kmersets, seqs, seqsh, n_threads):
         # FILTER FIRST
 
         # ALLOW FOR PARTIAL MATCHES, WHEN WALKING
@@ -185,11 +187,14 @@ class wDBG():
         for si, kmers in enumerate(kmersets):
             scores.append(self.query(kmers, seqsh[si]))
 
-        inds = np.argsort(scores)
-        for i in inds:
-            print(scores[i], seqsh[i])
         maxs = max(scores, key = lambda x:x)
         maxcls = [si for si in range(len(seqsh)) if scores[si] == maxs]
+
+#        inds = np.argsort(scores)
+#        for i in inds:
+#            aln = pairwise2.align.globalxx(seqs[i], seqs[maxcls[0]], one_alignment_only=True)
+#            print(scores[i], seqsh[i], aln[0][2]/len(aln[0][0]))
+
 
         # resolve ties by completion
         return maxs, maxcls

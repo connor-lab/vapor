@@ -103,7 +103,7 @@ def main(args):
 #    sys.stderr.write("Largest edge weight: %d \n" % mew)
 
     # Build cDBG; don't build nodes that are not used, though
-    path_results = wdbg.classify(dbkmers, seqsh, args.weight)
+    path_results = wdbg.classify(dbkmers, seqs, seqsh, args.weight)
     if args.return_paths == False:
         score, cls = path_results
         if args.return_seqs == True:
