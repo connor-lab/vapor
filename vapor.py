@@ -13,7 +13,7 @@ optional arguments:
     -h, --help          Show this help message and exit
     -q, --quiet         Suppresses output to stderr
     --return_seqs       Returns a fasta of sequences, instead of hits       
-    --return_paths      Return individual path scores, don't aggregate
+    --return_best_n     returns the best n hits [1]
     -o                  Combined output to files with prefix O, none by default
     -k                  Kmer length [21]
     -t, --threshold     Pre-Filtering Score threshold [0.0]
@@ -71,13 +71,15 @@ def main(args):
         dbkmersset.update(set(dbkmer))
     sys.stderr.write("Got %d database kmers\n" % len(dbkmersset))
 
-    sys.stderr.write("Filtering reads\n")
     # Parse and pre-filter reads
+    sys.stderr.write("Filtering reads\n")
     reads, nrawreads = vp.parse_and_prefilter(args.fq, dbkmersset, args.threshold, args.k)
+    sys.stderr.write("%d of %d reads survived\n" % (len(reads),nrawreads))
+
+    # Subsample reads
     sys.stderr.write("Subsampling reads\n")
     if args.subsample != None:
         reads = vp.subsample(reads, args.subsample)
-    sys.stderr.write("%d of %d reads survived\n" % (len(reads),nrawreads))
 
     # Check there are still sequences remaining
     if len(reads) == 0:
@@ -86,45 +88,37 @@ def main(args):
 
     # Build the wDBG from reads
     wdbg = vp.wDBG(reads, args.k, dbkmersset)
-
-    # Cull any kmers that are not present in the reference kmers
-#    sys.stderr.write("Culling kmers, beginning with %s\n" % len(wdbg.edges))
-#    wdbg.cull(dbkmers)
     sys.stderr.write("Got %d wdbg kmers\n" % len(wdbg.edges))
     if len(wdbg.edges) == 0:
         sys.stderr.write("Zero kmers remaining! None of the kmers in your reads were found in the database. More reads or a lower -k could help. \n")
         sys.exit(1)
-        
-#    sys.stderr.write("Getting start positions\n")
-    # Get start positions for paths
-#    wdbg.get_start_positions()
-#    sys.stderr.write("%d start positions found\n" % len(wdbg.start_positions))
-#    mew = max(wdbg.edges.items(), key = lambda x : x[1])[1]
-#    sys.stderr.write("Largest edge weight: %d \n" % mew)
 
-    # Build cDBG; don't build nodes that are not used, though
+    # Ask the wdbg to classify
+    sys.stderr.write("Classifying\n")
     path_results = wdbg.classify(dbkmers, seqs, seqsh, args.weight)
-    if args.return_paths == False:
-        score, cls = path_results
-        if args.return_seqs == True:
-            for c in cls:
-                print(seqsh[c])
-                print(seqs[c])
-        elif args.output_prefix != None:
-            scores_outf = open(args.output_prefix + ".out", "w")
-            scores_outf.write(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
-            scores_outf.close()
-            seqs_outf = open(args.output_prefix + ".fa", "w")
-            for c in cls:
-                seqs_outf.write(seqsh[c]+"\n")
-                seqs_outf.write(seqs[c]+"\n")
-            seqs_outf.close()
-        else:
-            print(str(score)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
+    results = path_results[-args.return_best_n:]
+    results = results[::-1]
+
+    # Output results
+    if args.return_seqs == True:
+        for c, score in results:
+            print(seqsh[c])
+            print(seqs[c])
+    elif args.output_prefix != None:
+        scores_outf = open(args.output_prefix + ".out", "w")
+        for c, score in results:
+            scores_outf.write(str(score)+"\t"+str(slen)+"\t" +str(prop) + "\t"+ str(len(reads)) + "\t"+seqsh[c] + "\n")
+        scores_outf.close()
+        seqs_outf = open(args.output_prefix + ".fa", "w")
+        for c, score in results:
+            seqs_outf.write(seqsh[c]+"\n")
+            seqs_outf.write(seqs[c]+"\n")
+        seqs_outf.close()
     else:
-        for score, weight, length, cls in path_results:
-            print(str(score)+"\t"+str(weight)+"\t"+str(length)+"\t"+str(len(reads))+"\t"+",".join([seqsh[c] for c in cls]))
-    sys.stderr.write("\nClassification Complete\n")
+         for c, score in results:
+            slen = len(seqs[c])
+            prop = str(score/slen)
+            print(str(score)+"\t"+str(slen)+"\t" +str(prop) + "\t"+ str(len(reads)) + "\t"+seqsh[c])
 
 if __name__ == '__main__':
     # CLI
@@ -134,8 +128,8 @@ if __name__ == '__main__':
     group2 = parser.add_mutually_exclusive_group()
     group2.add_argument("--return_seqs", action="store_true")
     group2.add_argument("-o", "--output_prefix", type=str, help="Prefix to write full output to, stout by default", nargs='?', default=None)
-    group2.add_argument("--return_paths", action="store_true", default=False)
 
+    parser.add_argument("--return_best_n", type=int, default=1)
     parser.add_argument("-w", "--weight", type=int, help="Minimum Path Weight [default=20]", nargs='?', default=20)
     parser.add_argument("-k", type=int, help="Kmer Length [15 > int > 30, default=21]", nargs='?', default=21)
     parser.add_argument("-t", "--threshold", type=float, help="Kmer filtering threshold [0 > float > 1, default=0.0]", nargs='?', default=0.0)
@@ -151,7 +145,7 @@ if __name__ == '__main__':
 
     # Set some thresholds for user input
     max_kmer = 30
-    min_kmer = 15
+    min_kmer = 5
     max_thres = 1
     min_thres = 0
 
