@@ -11,12 +11,14 @@ optional arguments:
     -h, --help          Show this help message and exit
     -q, --quiet         Suppresses output to stderr
     --return_seqs       Returns a fasta of sequences, instead of hits       
+    --return_best_n     Returns the highest scoring n queries
 
     -o                  Combined output to files with prefix O, none by default
     -k K                Kmer length [21]
     -t T                Pre-Filtering Score threshold [0.0]
     -s S                Number of reads to sub-sample
-    -w W                Minimum path weight to consider [20]
+    -m, --min_kmer_prop
+                        Minimum proportion of kmers required [0.7]
     -fa FA              Fasta file
     -fq FQ [FQ ...]     Fastq file/files, can be gzipped
 
@@ -29,7 +31,8 @@ Email (for inquiries): southgateJA@cardiff.ac.uk
 REQUIREMENTS
 
 Python 3.x
-NumPy 1.51.x
+NumPy >= 1.51.x
+BioPython >= 1.72
 
 COPYRIGHT
 
