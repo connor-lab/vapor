@@ -68,8 +68,8 @@ class wDBG():
             bi = aln[0][i]
             bj = aln[1][i]
             if bi == bj:
-                kmerj = aln[1][i]
-                ki = i+1
+                kmerj = ""
+                ki = i
                 while len(kmerj) < self.k and ki < len(aln[1]):
                     if aln[1][ki] != "-":
                         kmerj += aln[1][ki]
