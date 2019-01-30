@@ -18,7 +18,8 @@ optional arguments:
     -k                  Kmer length [21]
     -t, --threshold     Pre-Filtering Score threshold [0.0]
     -s, --subsample     Number of reads to subsample, no subsampling by default
-    -w, --weight        Min path weight to consider [20]
+    -m, --min_kmer_prop
+                        Minimum proportion of kmers required [0.7]
 
 Example:
     vapor.py -fa HA_sequences.fa -fq reads_1.fq
@@ -95,7 +96,7 @@ def main(args):
 
     # Ask the wdbg to classify
     sys.stderr.write("Classifying\n")
-    path_results = wdbg.classify(dbkmers, seqs, seqsh, args.weight)
+    path_results = wdbg.classify(dbkmers, args.min_kmer_prop)
     results = path_results[-args.return_best_n:]
     results = results[::-1]
 
@@ -130,7 +131,7 @@ if __name__ == '__main__':
     group2.add_argument("-o", "--output_prefix", type=str, help="Prefix to write full output to, stout by default", nargs='?', default=None)
 
     parser.add_argument("--return_best_n", type=int, default=1)
-    parser.add_argument("-w", "--weight", type=int, help="Minimum Path Weight [default=20]", nargs='?', default=20)
+    parser.add_argument("-m", "--min_kmer_prop", type=float, help="Minimum proportion of mismatched kmers allowed [default=0.3]", nargs='?', default=0.7)
     parser.add_argument("-k", type=int, help="Kmer Length [15 > int > 30, default=21]", nargs='?', default=21)
     parser.add_argument("-t", "--threshold", type=float, help="Kmer filtering threshold [0 > float > 1, default=0.0]", nargs='?', default=0.0)
     parser.add_argument("-fa", type=str, help="Fasta file")

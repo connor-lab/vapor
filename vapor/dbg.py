@@ -1,7 +1,7 @@
 """ DBG classes and related objects """
 import sys
-import numpy as np
 from collections import deque
+import numpy as np
 from Bio import pairwise2
 
 class wDBG():
@@ -10,11 +10,7 @@ class wDBG():
         """ Initialized with strings, k, and reference kmers """
         # Only explicitly store edges
         self.edges = {}
-        # Path cache to prevent re-computing
-        # Of paths between nodes
-        self.path_cache = {}
         self.k = k
-        self.start_positions = set()
         self._build(strings, ref_kmers)
 
     def _build(self, strings, ref_kmers):
@@ -34,24 +30,6 @@ class wDBG():
                         newkmerc += 1
                         self.edges[kmer] = 1
 
-    def brute_score_bases(self, kmers):
-        # Takes ordered kmers
-        scores = np.zeros(len(kmers))
-        for ki, kmer in enumerate(kmers):
-            maxw = 0
-#            print(max(ki-self.k, 0), ki, self.edges[kmer])
-            c = 0
-            for kj in range(max(ki-self.k+1, 0), ki+1):
-                c += 1
-                kmerj = kmers[kj]
-                if kmerj in self.edges:
-                    maxw = max([maxw, self.edges[kmerj]])
-    
-            assert c <= self.k
-            scores[ki] = maxw
-#            assert maxw >= self.edges[kmer]
-        return scores
-
     def search_gap(self, kmers, gapl, gapr):
         # heuristically build an optimal path in the wdbg
         if gapl > 0:
@@ -60,7 +38,6 @@ class wDBG():
            stringo = kmers[gapr]
         assert stringo in self.edges
         for i in range(gapr-gapl):
-#            print("stringo", stringo)
             if gapl > 0:
                 poss_edges = [stringo[-self.k+1:] + b for b in "ATCG"]
             else:
@@ -70,14 +47,12 @@ class wDBG():
             max_base = None
             for pe in poss_edges:
                 if pe in self.edges:
-#                    print("pe", pe)
                     tmpscore = self.edges[pe]
                     if tmpscore > max_score:
                         if gapl == 0:
                             max_base = pe[0]
                         else:
                             max_base = pe[-1]
-#            print(stringo, max_base, pe)
             if max_base != None:
                 if gapl > 0:
                     stringo += max_base
@@ -87,12 +62,8 @@ class wDBG():
                 break
     
         extra_scores = []
-        # compare that to the kmer string
         stringk = kmers[gapl] + "".join([kmer[-1] for kmer in kmers[gapl+1:gapr]])
         aln = pairwise2.align.globalxx(stringk, stringo, one_alignment_only=True)[0]
-#        print(aln, len(aln[1].replace("-","")))
-        # finally need to pad
-#        if 
         for i in range(len(aln[0])-self.k+1):
             bi = aln[0][i]
             bj = aln[1][i]
@@ -112,7 +83,7 @@ class wDBG():
              extra_scores += [0]*(gapr-gapl-len(extra_scores)) 
         return extra_scores
     
-    def get_weight_array(self, kmers, max_gap_prop=0.2):
+    def get_weight_array(self, kmers, min_kmer_prop):
         array = []
         in_gap = False
         gapl = -1
@@ -138,19 +109,19 @@ class wDBG():
         gapsum = 0
         for gapl, gapr in gaps:
             gapsum += gapr-gapl
-        if gapsum/len(kmers) < max_gap_prop:
+        if gapsum/len(kmers) < 1-min_kmer_prop:
             for gapl, gapr in gaps:
                 search = self.search_gap(kmers, gapl, gapr)
                 array[gapl:gapr] = search
-        return array        
+            return array        
+        else:
+            return False
 
     def deque_score_bases(self, array):
         """ For each contiguous stretch of kmers that are present
             uses a deque to find local maxima
             to approximate coverage of a base """
         local_minima = []
-               # local window alg using deque
-        # window size needs to be a function of k
         deq = deque()
         deq.append(0) 
         for ki in range(1, len(array)):
@@ -167,36 +138,25 @@ class wDBG():
         local_minima.append(array[deq[0]])
         return local_minima            
 
-    def query(self, kmers, name):
-#        kmers = [seq[ki:ki+self.k] for ki in range(len(seq)-self.k+1)]
-        # get brute score for debugging
-        weight_array = self.get_weight_array(kmers)
-#        if "AIM56458" in name or "Chile" in name:
-#            print(name, weight_array, sum(weight_array), len(weight_array))
-        deq_scores = self.deque_score_bases(weight_array)            
-        score = sum(deq_scores)
-        return score
+    def query(self, kmers, min_kmer_prop=0.7):
+        weight_array = self.get_weight_array(kmers, min_kmer_prop)
+        if weight_array != False:
+            deq_scores = self.deque_score_bases(weight_array)            
+            score = sum(deq_scores)
+            return score
+        else:
+            return False
 
-    def classify(self, kmersets, seqs, seqsh, n_threads):
-        # FILTER FIRST
-
-        # ALLOW FOR PARTIAL MATCHES, WHEN WALKING
-        # IF A KMER IS NOT FOUND, WE CAN CHECK HAMMING DISTANCES OF KMERS?
-        # ATTEMPT TO `BRIDGE THE GAP' (FOR LATER)
+    def classify(self, kmersets, min_kmer_prop):
         scores = []
         for si, kmers in enumerate(kmersets):
-            scores.append(self.query(kmers, seqsh[si]))
+            scores.append(self.query(kmers, min_kmer_prop))
 
-        maxs = max(scores, key = lambda x:x)
-        maxcls = [si for si in range(len(seqsh)) if scores[si] == maxs]
-
-#        inds = np.argsort(scores)
-#        for i in inds:
-#            aln = pairwise2.align.globalxx(seqs[i], seqs[maxcls[0]], one_alignment_only=True)
-#            print(scores[i], seqsh[i], aln[0][2]/len(aln[0][0]))
-
-
-        # resolve ties by completion
-        return maxs, maxcls
+        # Sort and return results
+        results = []
+        inds = np.argsort(scores)
+        for ind in inds:
+            results.append((ind, scores[ind]))
+        return results
 
 
