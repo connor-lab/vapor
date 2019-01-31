@@ -138,20 +138,20 @@ class wDBG():
         local_minima.append(array[deq[0]])
         return local_minima            
 
-    def query(self, kmers, min_kmer_prop=0.7):
+    def query(self, kmers, min_kmer_prop=0.9):
         weight_array = self.get_weight_array(kmers, min_kmer_prop)
         if weight_array != False:
             deq_scores = self.deque_score_bases(weight_array)            
             score = sum(deq_scores)
             return score
         else:
-            return False
+            return -1
 
     def classify(self, kmersets, min_kmer_prop):
         scores = []
         for si, kmers in enumerate(kmersets):
-            scores.append(self.query(kmers, min_kmer_prop))
-
+            query = self.query(kmers, min_kmer_prop)
+            scores.append(query)
         # Sort and return results
         results = []
         inds = np.argsort(scores)

@@ -103,25 +103,29 @@ def main(args):
     # Output results
     if args.return_seqs == True:
         for c, score in results:
-            print(seqsh[c])
-            print(seqs[c])
+            if score != -1:
+                print(seqsh[c])
+                print(seqs[c])
     elif args.output_prefix != None:
         scores_outf = open(args.output_prefix + ".out", "w")
         for c, score in results:
-            slen = len(seqs[c])
-            prop = str(score/slen)
-            scores_outf.write(str(score)+"\t"+str(slen)+"\t" +str(prop) + "\t"+ str(len(reads)) + "\t"+seqsh[c] + "\n")
+            if score != -1:
+                slen = len(seqs[c])
+                prop = str(score/slen)
+                scores_outf.write(str(score)+"\t"+str(slen)+"\t" +str(prop) + "\t"+ str(len(reads)) + "\t"+seqsh[c] + "\n")
         scores_outf.close()
         seqs_outf = open(args.output_prefix + ".fa", "w")
         for c, score in results:
-            seqs_outf.write(seqsh[c]+"\n")
-            seqs_outf.write(seqs[c]+"\n")
+            if score != -1:
+                seqs_outf.write(seqsh[c]+"\n")
+                seqs_outf.write(seqs[c]+"\n")
         seqs_outf.close()
     else:
          for c, score in results:
-            slen = len(seqs[c])
-            prop = str(score/slen)
-            print(str(score)+"\t"+str(slen)+"\t" +str(prop) + "\t"+ str(len(reads)) + "\t"+seqsh[c])
+            if score != -1:
+                slen = len(seqs[c])
+                prop = str(score/slen)
+                print(str(score)+"\t"+str(slen)+"\t" +str(prop) + "\t"+ str(len(reads)) + "\t"+seqsh[c])
 
 if __name__ == '__main__':
     # CLI
