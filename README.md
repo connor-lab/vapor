@@ -18,7 +18,7 @@ USAGE:
         -t T                Pre-Filtering Score threshold [0.0]
         -s S                Number of reads to sub-sample
         -m, --min_kmer_prop
-                            Minimum proportion of kmers required [0.7]
+                            Minimum proportion of kmers required [0.8]
         -fa FA              Fasta file
         -fq FQ [FQ ...]     Fastq file/files, can be gzipped
 
