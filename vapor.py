@@ -108,6 +108,8 @@ def main(args):
     elif args.output_prefix != None:
         scores_outf = open(args.output_prefix + ".out", "w")
         for c, score in results:
+            slen = len(seqs[c])
+            prop = str(score/slen)
             scores_outf.write(str(score)+"\t"+str(slen)+"\t" +str(prop) + "\t"+ str(len(reads)) + "\t"+seqsh[c] + "\n")
         scores_outf.close()
         seqs_outf = open(args.output_prefix + ".fa", "w")
