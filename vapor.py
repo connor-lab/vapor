@@ -96,9 +96,12 @@ def main(args):
 
     # Ask the wdbg to classify
     sys.stderr.write("Classifying\n")
-    path_results = wdbg.classify(dbkmers, args.min_kmer_prop)
+    path_results = wdbg.classify(dbkmers, seqsh, args.min_kmer_prop)
     results = path_results[-args.return_best_n:]
-    results = results[::-1]
+    results = [(c, score) for c, score in results[::-1] if score != -1]
+    if len(results) == 0:
+        sys.stderr.write("No hits. Try a lower -m threshold\n")
+        sys.exit(1)
 
     # Output results
     if args.return_seqs == True:
