@@ -96,7 +96,7 @@ class wDBG():
             print("stringk", stringk)
             print("SCORE")
             # SCORE
-            bridge_scores = [0 for i in range(gapr-gapl)]
+            bridge_scores = [-1 for i in range(gapr-gapl)]
             for i in range(len(stringo)-self.k+1):
                 bridge_scores[i] = self.edges[stringo[i:i+self.k]]
 #            bridge_scores = self.deque_score_bases(bridge_scores)
@@ -124,7 +124,7 @@ class wDBG():
                 cj = aln[1][i]
                 if cj != "-":
                     if ci != cj:
-                        bridge_scores[bi] = -1
+                        bridge_scores[bi] = (-1, bridge_scores[bi])
                     bi += 1
             # Now pad the extra scores (this is in case the bridge is not as long as the query gap)
             print(len(bridge_scores), gapr-gapl, gapr, gapl, len(kmers))
@@ -194,7 +194,7 @@ class wDBG():
                 cj = aln[1][i]
                 if cj != "-":
                     if ci != cj:
-                        bridge_scores[bi] = -1
+                        bridge_scores[bi] = (-1, bridge_scores[bi])
                     bi += 1
             # Now pad the extra scores (this is in case the bridge is not as long as the query gap)
             print(bridge_scores)
@@ -253,12 +253,30 @@ class wDBG():
         local_maxima = []
         deq = deque()
         deq.append(0)
+        # MASK; special flags for array:
+            # -1 gives no information, also not counted
+            # (-1,x) gives information, but is not counted
+            # we note down these positions
+            # and reset them
+        mask_inds = []
+        print(array)
+        for ai in range(len(array)):
+            w = array[ai]
+            if type(w) == int:
+                if w == -1:
+                    mask_inds.append(ai)
+            else:
+                mask_inds.append(ai)
+                array[ai] = w[1]
+
+        print(mask_inds)
+        print(array)
         for ki in range(1, len(array)):
             # append the prev
-            if array[ki-1] == -1:
-                local_maxima.append(-1)
-            else:
-                local_maxima.append(array[deq[0]])
+#            if array[ki-1] == -1:
+#                local_maxima.append(-1)
+#            else:
+            local_maxima.append(array[deq[0]])
             while deq and deq[0] <= ki-self.k:
                 deq.popleft()
             while deq and array[ki] >= array[deq[-1]]:
@@ -268,6 +286,11 @@ class wDBG():
             local_maxima.append(-1)
         else:
             local_maxima.append(array[deq[0]])
+
+        # Finally use the mask indices
+        for ai in mask_inds:
+            local_maxima[ai] = 0
+        print(local_maxima)
         return local_maxima            
 
     def query(self, kmers, seqsh, min_kmer_prop=0.9):
