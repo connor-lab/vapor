@@ -103,6 +103,15 @@ def main(args):
         sys.stderr.write("No hits. Try a lower -m threshold\n")
         sys.exit(1)
 
+#    from Bio import pairwise2
+#    for c,score in results[1:]:
+#        aln = pairwise2.align.globalms(seqs[results[0][0]], seqs[c],0,-1,-1,-1, one_alignment_only=True)
+#        s1 = aln[0][0]
+#        s2 = aln[0][1]
+#        sumo = sum([1 for i in range(len(s1)) if s1[i] == s2[i]])
+#        print(sumo)
+
+
     # Output results
     if args.return_seqs == True:
         for c, score in results:
