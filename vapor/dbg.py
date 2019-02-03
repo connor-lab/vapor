@@ -48,17 +48,17 @@ class wDBG():
             to_join = [kmer[-1] for kmer in kmers[gapl:gapr]]
             joined = "".join(to_join)
             stringk = kmers[gapl-1] + joined 
-            print(len(to_join), gapr-gapl, gapr-gapl+self.k, gapr, len(kmers))
+#            print(len(to_join), gapr-gapl, gapr-gapl+self.k, gapr, len(kmers))
             assert len(to_join) == gapr-gapl
             assert gapr <= len(kmers)
             assert len(stringk) == gapr-gapl+self.k
-            print("INIT", gapr, gapl)
-            if gapr == len(kmers):
-                print(kmers[gapl])
-            else:
-                print(kmers[gapl], kmers[gapr])
-            print("stringo", stringo)
-            print("stringk", stringk)
+#            print("INIT", gapr, gapl)
+#            if gapr == len(kmers):
+#                print(kmers[gapl])
+#            else:
+#                print(kmers[gapl], kmers[gapr])
+#            print("stringo", stringo)
+#            print("stringk", stringk)
             # EXTEND NOW; GAPR-GAPL bases
             for i in range(gapr-gapl):
                 poss_edges = [stringo[-self.k+1:] + b for b in "ATCG"]
@@ -76,48 +76,48 @@ class wDBG():
                         # no extension possible, return False
                         return False
                     early_break = True
-                    print("early break")
+#                    print("early break")
                     break            
-            print(gapl, gapr)
-            print("BRIDGE")
-            print("stringo", stringo)
-            print("stringk", stringk)
-            print("TRIM1")
+#            print(gapl, gapr)
+#            print("BRIDGE")
+#            print("stringo", stringo)
+#            print("stringk", stringk)
+#            print("TRIM1")
             # TRIM 1
             stringo = stringo[1:]
             assert len(stringk) == gapr-gapl+self.k
             stringk = stringk[1:]
-            print(len(stringk), gapr-gapl-1+self.k, gapr, gapl, len(kmers))
+#            print(len(stringk), gapr-gapl-1+self.k, gapr, gapl, len(kmers))
             assert len(stringk) == gapr-gapl-1+self.k
             assert len(stringo) <= gapr-gapl-1+self.k
             stringk = stringk[:len(stringo)]
             assert len(stringo) == len(stringk)
-            print("stringo", stringo)
-            print("stringk", stringk)
-            print("SCORE")
+#            print("stringo", stringo)
+#            print("stringk", stringk)
+#            print("SCORE")
             # SCORE
             bridge_scores = [-1 for i in range(gapr-gapl)]
             for i in range(len(stringo)-self.k+1):
                 bridge_scores[i] = self.edges[stringo[i:i+self.k]]
 #            bridge_scores = self.deque_score_bases(bridge_scores)
-            print(bridge_scores)
-            print("TRIM2")
+#            print(bridge_scores)
+#            print("TRIM2")
             # TRIM 2
             stringo = stringo[self.k-1:gapr-gapl]
             stringk = stringk[self.k-1:gapr-gapl]
             if len(stringk) == 0:
                 return False
-            print("stringo", stringo)
-            print("stringk", stringk)
+#            print("stringo", stringo)
+#            print("stringk", stringk)
             assert len(stringk) < gapr-gapl+self.k-1
             assert len(stringo) < gapr-gapl+self.k-1
             # ADJUST SCORES
             aln = pairwise2.align.globalxx(stringk, stringo, one_alignment_only=True)[0]
-            print("ALIGNMENT")
-            print(aln[0])
-            print(aln[1])
+#            print("ALIGNMENT")
+#            print(aln[0])
+#            print(aln[1])
             bi = self.k-1
-            print(len(bridge_scores), len(stringo), len(stringk), gapl, gapr)
+#            print(len(bridge_scores), len(stringo), len(stringk), gapl, gapr)
         
             for i in range(len(aln[0])):
                 ci = aln[0][i]
@@ -127,7 +127,7 @@ class wDBG():
                         bridge_scores[bi] = (-1, bridge_scores[bi])
                     bi += 1
             # Now pad the extra scores (this is in case the bridge is not as long as the query gap)
-            print(len(bridge_scores), gapr-gapl, gapr, gapl, len(kmers))
+#            print(len(bridge_scores), gapr-gapl, gapr, gapl, len(kmers))
             assert len(bridge_scores) == gapr-gapl
             return bridge_scores
 
@@ -135,16 +135,16 @@ class wDBG():
             # INITIALIZE
             stringo = kmers[gapr]
             stringk = "".join([kmer[0] for kmer in kmers[gapl:gapr]]) + kmers[gapr]
-            print("INIT", gapr, gapl)
-            print(kmers[gapl], kmers[gapr])
-            print("stringo", stringo)
-            print("stringk", stringk)
+#            print("INIT", gapr, gapl)
+#            print(kmers[gapl], kmers[gapr])
+#            print("stringo", stringo)
+#            print("stringk", stringk)
             early_break = False
             for i in range(gapr-gapl):
                 poss_edges = [b + stringo[:self.k-1] for b in "ATCG"]
                 max_score = 0
                 max_base = None
-                print(poss_edges)
+#                print(poss_edges)
                 for pe in poss_edges:
                     if pe in self.edges:
                         tmp_score = self.edges[pe]
@@ -154,39 +154,39 @@ class wDBG():
                     stringo = max_base + stringo
                 else:
                     early_break = True
-                    print("early break")
+#                    print("early break")
                     stringk = stringk[-len(stringo):]
                     if i == 0:
                         # we were not able to extend at all; return False
                         return False
                     break
 
-            print(len(stringk), gapr-gapl)
-            print("stringo", stringo)
-            print("stringk", stringk)
-            print("TRIM 1")
+#            print(len(stringk), gapr-gapl)
+#            print("stringo", stringo)
+#            print("stringk", stringk)
+#            print("TRIM 1")
             stringo = stringo[:-1]
             stringk = stringk[:-1]
             stringk = stringk[-len(stringo):]
-            print("stringo", stringo)
-            print("stringk", stringk)
+#            print("stringo", stringo)
+#            print("stringk", stringk)
             # calculate scores for the whole bridge
             assert len(stringo) <= gapr-gapl-1+self.k
             assert len(stringo) <= gapr-gapl-1+self.k
-            print("SCORE")
+#            print("SCORE")
             bridge_scores = []
             for i in range(len(stringo)-self.k+1):
                 bridge_scores.append(self.edges[stringo[i:i+self.k]])
 #            bridge_scores = self.deque_score_bases(bridge_scores)
-            print(bridge_scores)
-            print("TRIM 2")
+#            print(bridge_scores)
+#            print("TRIM 2")
             stringk = stringk[:-self.k+1]
             stringo = stringo[:-self.k+1]
             if len(stringk) == 0:
                 return False
-            print("stringo", stringo)
-            print("stringk", stringk)
-            print("ADJUST SCORES")
+#            print("stringo", stringo)
+#            print("stringk", stringk)
+#            print("ADJUST SCORES")
             aln = pairwise2.align.globalxx(stringk, stringo, one_alignment_only=True)[0]
             bi = 0
             for i in range(len(aln[0])):
@@ -197,11 +197,11 @@ class wDBG():
                         bridge_scores[bi] = (-1, bridge_scores[bi])
                     bi += 1
             # Now pad the extra scores (this is in case the bridge is not as long as the query gap)
-            print(bridge_scores)
-            print("FINAL PAD")
+#            print(bridge_scores)
+#            print("FINAL PAD")
             if early_break == True:
                 bridge_scores = [-1 for i in range(gapr-gapl-len(bridge_scores))] + bridge_scores
-            print(bridge_scores)
+#            print(bridge_scores)
             return bridge_scores 
 
         if len(stringo) == self.k:
@@ -237,9 +237,9 @@ class wDBG():
         if gapsum/len(kmers) < 1-min_kmer_prop:
             for gapl, gapr in gaps:
                 search = self.search_gap(kmers, gapl, gapr)
-                print("search",search)
+#                print("search",search)
                 if search != False:
-                    print(len(search), gapr-gapl, gapl, gapr)
+#                    print(len(search), gapr-gapl, gapl, gapr)
                     assert len(search) == gapr-gapl
                     array[gapl:gapr] = search
             return array        
@@ -259,7 +259,7 @@ class wDBG():
             # we note down these positions
             # and reset them
         mask_inds = []
-        print(array)
+#        print(array)
         for ai in range(len(array)):
             w = array[ai]
             if type(w) == int:
@@ -269,8 +269,8 @@ class wDBG():
                 mask_inds.append(ai)
                 array[ai] = w[1]
 
-        print(mask_inds)
-        print(array)
+#        print(mask_inds)
+#        print(array)
         for ki in range(1, len(array)):
             # append the prev
 #            if array[ki-1] == -1:
@@ -290,19 +290,19 @@ class wDBG():
         # Finally use the mask indices
         for ai in mask_inds:
             local_maxima[ai] = 0
-        print(local_maxima)
+#        print(local_maxima)
         return local_maxima            
 
     def query(self, kmers, seqsh, min_kmer_prop=0.9):
         weight_array = self.get_weight_array(kmers, min_kmer_prop)
         if weight_array != False:
             deq_scores = self.deque_score_bases(weight_array)            
-            if "Chile" in seqsh or "A/Cambodia/NHRCC00010/2009" in seqsh:
-                print(seqsh)
-                print([z for z in zip(range(len(weight_array)), weight_array)])
-                print([z for z in zip(range(len(deq_scores)), deq_scores)]) 
-                print(len(deq_scores))
-                print(deq_scores.count(-1))
+#            if "Chile" in seqsh or "A/Cambodia/NHRCC00010/2009" in seqsh:
+#                print(seqsh)
+#                print([z for z in zip(range(len(weight_array)), weight_array)])
+#                print([z for z in zip(range(len(deq_scores)), deq_scores)]) 
+#                print(len(deq_scores))
+#                print(deq_scores.count(-1))
             score = sum([i for i in deq_scores if i != -1])
             return score
         else:
