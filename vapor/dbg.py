@@ -3,17 +3,36 @@ import sys
 from collections import deque
 import numpy as np
 from Bio import pairwise2
+from vapor.vaporfunc import *
+
+class SearchResult():
+    def __init__(self):
+        self.i = -1
+        self.prop_kmers = -1
+        self.gap_positions = []
+        self.raw_array = []
+        self.filled_array = []
+        self.raw_score = -1
+        self.score = -1
+    def print(self):
+        print("i", self.i)
+        print("kmer prop", self.prop_kmers)
+        print("gap_positions", self.gap_positions)
+        print("rawarray", self.raw_array)
+        print("filledarray", self.filled_array)
+        print("score", self.score)
+        print("raw_score", self.raw_score)
 
 class wDBG():
     """ Basic DBG with associated edge weights """
-    def __init__(self, strings, k, ref_kmers):
+    def __init__(self, strings, k):
         """ Initialized with strings, k, and reference kmers """
         # Only explicitly store edges
         self.edges = {}
         self.k = k
-        self._build(strings, ref_kmers)
+        self._build(strings)
 
-    def _build(self, strings, ref_kmers):
+    def _build(self, strings):
         # Builds by taking a set of strings (reads), reference kmers
         # Any kmer not present in references is discarded
         sys.stderr.write("Building wDBG\n")
@@ -23,12 +42,55 @@ class wDBG():
             kmers = [string[i:i+self.k] for i in range(len(string)-self.k+1)]
             newkmerc = 0
             for kmer in kmers:
-                if kmer in ref_kmers:
-                    if kmer in self.edges:
-                        self.edges[kmer] += 1
-                    else:
-                        newkmerc += 1
-                        self.edges[kmer] = 1
+#                if kmer in ref_kmers:
+                if kmer in self.edges:
+                    self.edges[kmer] += 1
+                else:
+                    newkmerc += 1
+                    self.edges[kmer] = 1
+
+    def score_against_bridge(self, query, bridge, bridge_scores):
+        # hamming distance, for now
+        scores = []
+        for i in range(len(query)):
+            if query[i] == bridge[i]:
+                scores.append(bridge_scores[i])
+            else:
+                scores.append(-1)
+        return scores
+
+    def extend_bridge(self, kmer, n, direction=1):
+        string = kmer
+        scores = []
+        while len(string) < n+self.k:
+            poss_edges = [string[-self.k+1:] + b for b in "ATCG"]
+            max_score = 0
+            max_base = None
+            for pe in poss_edges:
+                assert len(pe) == self.k
+                if pe in self.edges:
+                    tmpscore = self.edges[pe]
+                    if tmpscore > max_score:
+                        max_score = tmpscore
+                        max_base = pe[-1]
+            if max_base != None:
+                scores.append(max_score)
+                string += max_base
+            else:
+                print("break", len(string)-self.k)
+                break
+        print("finished", len(string))
+        string = string[len(kmer):]
+        scores += [-1 for i in range(n-len(string))]
+        string += "X"*(n-len(string))
+        # return early
+        print(kmer, n)
+        print(string)
+        print(scores)
+        print(len(string), len(scores), n)
+        assert len(string) == n
+        assert len(scores) == n
+        return string, scores
 
     def search_gap(self, kmers, gapl, gapr):
         if gapl == 0 and gapr == len(kmers):
@@ -207,6 +269,38 @@ class wDBG():
         if len(stringo) == self.k:
             # abandon, no bridge exists
             return [0] * len(gapr-gapl)
+
+    def get_raw_weight_array(self, kmers):
+        array = []
+        for ki, kmer in enumerate(kmers):
+            if kmer in self.edges:
+                array.append(self.edges[kmer])
+            else:
+                array.append(0)    
+        # for each gap starting on the left, should change to 0, not -1?
+        # 0
+        return array
+    
+    def get_weight_array_gaps(self, array):
+        in_gap = False
+        gapl = -1
+        gapr = -1
+        gaps = []
+        for ki, val in enumerate(array):
+            if val != 0:
+                if in_gap == True:
+                    gapr = ki
+                    gaps.append((gapl, gapr))
+ 
+                in_gap = False
+            else:
+                if in_gap == False:
+                    gapl = ki
+                in_gap = True
+        if in_gap == True:
+            gapr = len(array)
+            gaps.append((gapl, gapr))
+        return gaps
     
     def get_weight_array(self, kmers, min_kmer_prop):
         array = []
@@ -242,7 +336,7 @@ class wDBG():
 #                    print(len(search), gapr-gapl, gapl, gapr)
                     assert len(search) == gapr-gapl
                     array[gapl:gapr] = search
-            return array        
+            return array
         else:
             return False
 
@@ -294,19 +388,52 @@ class wDBG():
         return local_maxima            
 
     def query(self, kmers, seqsh, min_kmer_prop=0.9):
-        weight_array = self.get_weight_array(kmers, min_kmer_prop)
-        if weight_array != False:
-            deq_scores = self.deque_score_bases(weight_array)            
-#            if "Chile" in seqsh or "A/Cambodia/NHRCC00010/2009" in seqsh:
-#                print(seqsh)
-#                print([z for z in zip(range(len(weight_array)), weight_array)])
-#                print([z for z in zip(range(len(deq_scores)), deq_scores)]) 
-#                print(len(deq_scores))
-#                print(deq_scores.count(-1))
-            score = sum([i for i in deq_scores if i != -1])
-            return score
-        else:
-            return -1
+        sr = SearchResult()
+        raw_weight_array = self.get_raw_weight_array(kmers)
+        gaps = self.get_weight_array_gaps(raw_weight_array)
+        filled_weight_array = raw_weight_array
+        for gapl, gapr in gaps:
+            if gapl != 0 and gapr != len(kmers):
+#                print("gap_positions", gapl, gapr, gapr-gapl)
+                for kmer in kmers[gapl:gapr]:
+                    assert kmer not in self.edges
+                gapstring = kmers2str(kmers[gapl:gapr])[self.k-1:]
+                assert kmers[gapl-1] in self.edges
+                assert kmers[gapr] in self.edges
+                bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl)
+                assert gapr-gapl == len(gapstring)
+                extra_scores = self.score_against_bridge(gapstring, bridge, bridge_scores)
+#                print("bounds", gapr, gapl)
+#                print("bridge", bridge)
+#                print("gapstr", gapstring)
+#                print(bridge_scores)
+#                print(extra_scores)
+                assert len(bridge) == gapr-gapl
+                assert len(bridge_scores) == gapr-gapl
+                filled_weight_array[gapl:gapr] = extra_scores
+        raw_deque_array = self.deque_score_bases(raw_weight_array)
+        filled_deque_array = self.deque_score_bases(filled_weight_array)
+
+#        print(raw_weight_array)
+#        print(raw_deque_array)
+#        print([z for z in zip(raw_weight_array, filled_weight_array)])
+        assert sum(filled_weight_array) >= sum(raw_weight_array)
+        assert sum(filled_deque_array) >= sum(raw_deque_array)
+        
+        sr.gap_positions = gaps
+        sr.filled_array = filled_weight_array
+        sr.raw_array = raw_weight_array
+#            sr.filled_deque_array = filled_deque_array
+#            sr.raw_deque_array = raw_deque_array
+        sr.prop_kmers = len([i for i in raw_deque_array if i > 0])/len(kmers)            
+#        print(raw_weight_array)
+#        print(sr.prop_kmers, len([i for i in raw_weight_array if i > 0])/len(kmers))
+
+        score = sum([i for i in raw_deque_array if i != -1])
+        sr.score = score
+#            print(seqsh)
+#            sr.print()
+        return score
 
     def classify(self, kmersets, seqsh, min_kmer_prop):
         scores = []

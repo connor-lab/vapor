@@ -88,7 +88,7 @@ def main(args):
         sys.exit(1)
 
     # Build the wDBG from reads
-    wdbg = vp.wDBG(reads, args.k, dbkmersset)
+    wdbg = vp.wDBG(reads, args.k)
     sys.stderr.write("Got %d wdbg kmers\n" % len(wdbg.edges))
     if len(wdbg.edges) == 0:
         sys.stderr.write("Zero kmers remaining! None of the kmers in your reads were found in the database. More reads or a lower -k could help. \n")
