@@ -15,6 +15,13 @@ class SearchResult():
         self.filled_deque_array = []
         self.raw_score = -1
         self.score = -1
+    def compare(self, sr):
+        for i in range(len(self.filled_deque_array)):
+            if self.filled_deque_array[i] != sr.filled_deque_array[i]:
+                print(i, self.filled_deque_array[i], sr.filled_deque_array[i], "*")
+            else:
+                print(i, self.filled_deque_array[i])
+
 
 class wDBG():
     """ Basic DBG with associated edge weights """
@@ -164,6 +171,10 @@ class wDBG():
                 if gapl != 0 and gapr != len(kmers):
                     gapstring = kmers2str(kmers[gapl:gapr])[self.k-1:]
                     bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl)
+                    bridge_rev, bridge_scores_rev = self.extend_bridge(kmers[gapr], gapr-gapl, -1)
+                    if sum(bridge_scores_rev) > sum(bridge_scores):
+                        bridge = bridge_rev
+                        bridge_scores = bridge_scores_rev
                     extra_scores = self.score_against_bridge(gapstring, bridge, bridge_scores)
                     filled_weight_array[gapl:gapr] = extra_scores
                 elif gapr != len(kmers) and gapl == 0:
@@ -180,13 +191,17 @@ class wDBG():
                     bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl)
                     extra_scores = self.score_against_bridge(gapstring, bridge, bridge_scores)
                     filled_weight_array[gapl:gapr] = extra_scores
-
+#                print(gapl, gapr, gapr-gapl, len(extra_scores), len(bridge))
+#                print(bridge)
+#                print()
             filled_deque_array = self.deque_score_bases(filled_weight_array)
         else:
             filled_deque_array = raw_weight_array
             sr.est_pid = -1
             sr.score = -1
             return sr
+        sr.filled_deque_array = filled_deque_array
+        np.set_printoptions(threshold=np.nan)
         nonzeros = [i for i in filled_deque_array if i > 0]
         est_pid = len(nonzeros)/len(filled_deque_array)
         sr.est_pid = est_pid
@@ -199,7 +214,9 @@ class wDBG():
         debug_srs = []
         for si, kmers in enumerate(kmersets):
             sr = self.query(kmers, seqsh[si], min_kmer_prop)
-            scores.append((sr.est_pid, sr.score))
+            debug_srs.append(sr)
+            scores.append((sr.score, sr.est_pid))
+#        debug_srs[0].compare(debug_srs[1])
 
         # Sort and return results
         results = []
