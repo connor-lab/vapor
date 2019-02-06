@@ -98,7 +98,7 @@ def main(args):
     sys.stderr.write("Classifying\n")
     path_results = wdbg.classify(dbkmers, seqsh, args.min_kmer_prop)
     results = path_results[-args.return_best_n:]
-    results = [(c, score) for c, score in results[::-1] if score != -1]
+    results = [(c, est_cov, score) for c, est_cov, score in results[::-1] if score != -1]
     if len(results) == 0:
         sys.stderr.write("No hits. Try a lower -m threshold\n")
         sys.exit(1)
@@ -114,30 +114,30 @@ def main(args):
 
     # Output results
     if args.return_seqs == True:
-        for c, score in results:
+        for c, est_cov, score in results:
             if score != -1:
                 print(seqsh[c])
                 print(seqs[c])
     elif args.output_prefix != None:
         scores_outf = open(args.output_prefix + ".out", "w")
-        for c, score in results:
+        for c, est_cov, score in results:
             if score != -1:
                 slen = len(seqs[c])
-                prop = str(score/slen)
-                scores_outf.write(str(score)+"\t"+str(slen)+"\t" +str(prop) + "\t"+ str(len(reads)) + "\t"+seqsh[c] + "\n")
+                mean = str(score/slen)
+                scores_outf.write(str(est_cov) + "\t" + str(score) + "\t" + str(slen)+"\t" +str(mean) + "\t"+ str(len(reads)) + "\t"+seqsh[c] + "\n")
         scores_outf.close()
         seqs_outf = open(args.output_prefix + ".fa", "w")
-        for c, score in results:
+        for c, est_cov, score in results:
             if score != -1:
                 seqs_outf.write(seqsh[c]+"\n")
                 seqs_outf.write(seqs[c]+"\n")
         seqs_outf.close()
     else:
-         for c, score in results:
+         for c, est_cov, score in results:
             if score != -1:
                 slen = len(seqs[c])
-                prop = str(score/slen)
-                print(str(score)+"\t"+str(slen)+"\t" +str(prop) + "\t"+ str(len(reads)) + "\t"+seqsh[c])
+                mean = str(score/slen)
+                print(str(est_cov) + "\t" + str(score)+"\t"+str(slen)+"\t" +str(mean) + "\t"+ str(len(reads)) + "\t"+seqsh[c])
 
 if __name__ == '__main__':
     # CLI
