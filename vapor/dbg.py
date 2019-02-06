@@ -341,7 +341,7 @@ class wDBG():
 
         inds = argsort(scores)
         for ind in inds:
-            results.append((ind, *scores[ind]))
+            results.append((ind, scores[ind][0], scores[ind][1]))
         return results
 
 
