@@ -4,6 +4,12 @@ import numpy as np
 import gzip
 import random
 
+def kmers2str(kmers):
+    s = kmers[0]    
+    for k in kmers[1:]:
+        s += k[-1]
+    return s
+
 def get_kmers(strings,k):
     """ Takes strings and returns a set of kmers """
     kmers = []
@@ -65,8 +71,8 @@ def parse_fasta_uniq(fasta, filter_Ns=True):
     with open(fasta) as f:
         for li, line in enumerate(f):
             l = line.strip()
-            if l[0] == ">" and li > 0:
-                if tmps not in sseen:
+            if l[0] == ">":
+                if tmps not in sseen and li > 0:
                     if ((filter_Ns == True) and "N" not in tmps) or filter_Ns == False:
                         hs.append(tmph)
                         ss.append(tmps) 
