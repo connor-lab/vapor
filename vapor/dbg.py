@@ -172,11 +172,26 @@ class wDBG():
                     gapstring = kmers2str(kmers[gapl:gapr])[self.k-1:]
                     bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl)
                     bridge_rev, bridge_scores_rev = self.extend_bridge(kmers[gapr], gapr-gapl, -1)
+                    gapstring_rev = kmers2str(kmers[gapl:gapr])[:-self.k+1]
                     if sum(bridge_scores_rev) > sum(bridge_scores):
-                        bridge = bridge_rev
-                        bridge_scores = bridge_scores_rev
-                    extra_scores = self.score_against_bridge(gapstring, bridge, bridge_scores)
-                    filled_weight_array[gapl:gapr] = extra_scores
+                        extra_scores = self.score_against_bridge(gapstring_rev, bridge_rev, bridge_scores_rev)
+                        filled_weight_array[gapl:gapr] = extra_scores
+#                        print("rev")
+#                        print(gapstring_rev)
+#                        print(kmers[gapl], kmers[gapr])
+#                        print(gapl, gapr, gapr-gapl, len(extra_scores), len(bridge_rev))
+#                        print(bridge_rev)
+#                        print(gapstring_rev)
+#                        print()
+                    else:
+                        extra_scores = self.score_against_bridge(gapstring, bridge, bridge_scores)
+                        filled_weight_array[gapl:gapr] = extra_scores
+#                        print(kmers[gapl], kmers[gapr])
+#                        print(gapl, gapr, gapr-gapl, len(extra_scores), len(bridge))
+#                        print(bridge)
+#                        print(gapstring)
+#                        print()
+
                 elif gapr != len(kmers) and gapl == 0:
                     gapstring = kmers2str(kmers[gapl:gapr])[self.k-1:]
                     bridge, bridge_scores = self.extend_bridge(kmers[gapr], gapr-gapl, -1)
@@ -191,9 +206,6 @@ class wDBG():
                     bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl)
                     extra_scores = self.score_against_bridge(gapstring, bridge, bridge_scores)
                     filled_weight_array[gapl:gapr] = extra_scores
-#                print(gapl, gapr, gapr-gapl, len(extra_scores), len(bridge))
-#                print(bridge)
-#                print()
             filled_deque_array = self.deque_score_bases(filled_weight_array)
         else:
             filled_deque_array = raw_weight_array
