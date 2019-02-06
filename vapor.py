@@ -19,7 +19,7 @@ optional arguments:
     -t, --threshold     Pre-Filtering Score threshold [0.0]
     -s, --subsample     Number of reads to subsample, no subsampling by default
     -m, --min_kmer_prop
-                        Minimum proportion of kmers required [0.5]
+                        Minimum proportion of kmers required [0.1]
 
 Example:
     vapor.py -fa HA_sequences.fa -fq reads_1.fq
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     group2.add_argument("-o", "--output_prefix", type=str, help="Prefix to write full output to, stout by default", nargs='?', default=None)
 
     parser.add_argument("--return_best_n", type=int, default=1)
-    parser.add_argument("-m", "--min_kmer_prop", type=float, help="Minimum proportion of mismatched kmers allowed [default=0.5]", nargs='?', default=0.5)
+    parser.add_argument("-m", "--min_kmer_prop", type=float, help="Minimum proportion of mismatched kmers allowed [default=0.5]", nargs='?', default=0.1)
     parser.add_argument("-k", type=int, help="Kmer Length [15 > int > 30, default=21]", nargs='?', default=21)
     parser.add_argument("-t", "--threshold", type=float, help="Kmer filtering threshold [0 > float > 1, default=0.0]", nargs='?', default=0.0)
     parser.add_argument("-fa", type=str, help="Fasta file")
