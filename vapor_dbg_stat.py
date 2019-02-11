@@ -98,18 +98,7 @@ def main(args):
     counts = {}
     maxcount = 0
     for edge, count in wdbg.edges.items():
-        if count > maxcount:
-            maxcount = count
-        if count in counts:
-            counts[count] += 1
-        else:
-            counts[count] = 1
-
-    for count in range(maxcount):
-        if count in counts:
-            print("%d,%d" % (count, counts[count]))
-        else:
-            print("%d,0" % count)
+        print(count)
 
 
 if __name__ == '__main__':
