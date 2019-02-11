@@ -98,7 +98,8 @@ def main(args):
     counts = {}
     maxcount = 0
     for edge, count in wdbg.edges.items():
-        print(count)
+        b = int((edge in dbkmersset))
+        print("%d,%d" % (count, b))
 
 
 if __name__ == '__main__':
