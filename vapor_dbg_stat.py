@@ -102,7 +102,7 @@ def main(args):
         else:
             counts[count] = 1
 
-    for count, n in sorted(counts.items(), key = lambda x:x[1]):
+    for count, n in sorted(counts.items(), key = lambda x:x[0]):
         print("%d,%d" % (count, n))
 
 
