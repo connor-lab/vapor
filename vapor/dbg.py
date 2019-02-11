@@ -31,7 +31,7 @@ class wDBG():
         self.edges = {}
         self.k = k
         self._build(strings)
-        self._cull_low()
+#        self._cull_low()
 
     def _build(self, strings):
         # Builds by taking a set of strings (reads), reference kmers
