@@ -96,14 +96,20 @@ def main(args):
      
     # Now get the wdbg kmer spectrum
     counts = {}
+    maxcount = 0
     for edge, count in wdbg.edges.items():
+        if count > maxcount:
+            maxcount = count
         if count in counts:
             counts[count] += 1
         else:
             counts[count] = 1
 
-    for count, n in sorted(counts.items(), key = lambda x:x[0]):
-        print("%d,%d" % (count, n))
+    for count in range(maxcount):
+        if count in counts:
+            print("%d,%d" % (count, counts[count]))
+        else:
+            print("%d,0" % count)
 
 
 if __name__ == '__main__':
