@@ -38,7 +38,7 @@ def parse_and_prefilter(fqs, dbkmers, threshold, k):
             if c == 1:
                 nraw += 1
                 stripped = line.strip()
-                ktotal = len(stripped)-k+1
+                ktotal = int(len(stripped)/k)
                 # Don't allow Ns in read
                 # Don't allow reads < k
                 rev = rev_comp(stripped)
