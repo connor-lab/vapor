@@ -29,8 +29,6 @@ def parse_and_prefilter(fqs, dbkmers, threshold, k):
     nraw = 0
     reads = []
     c = 0
-    M = float(len(dbkmers))
-    seen = set()
     for fq in fqs:
         if fq.endswith(".gz"):
             f = gzip.open(fq,'rt')
@@ -40,14 +38,13 @@ def parse_and_prefilter(fqs, dbkmers, threshold, k):
             if c == 1:
                 nraw += 1
                 stripped = line.strip()
-                ktotal = int(len(stripped)/k)
+                ktotal = int(len(stripped))
                 # Don't allow Ns in read
                 # Don't allow reads < k
                 rev = rev_comp(stripped)
                 for tmpseq in [stripped, rev]: 
                     kcount = 0
                     if "N" not in tmpseq and len(tmpseq) >= k:
-                        seen.add(tmpseq)
                         for i in range(0, len(tmpseq)-k+1, k):
                             if tmpseq[i:i+k] in dbkmers:
                                 kcount += 1
