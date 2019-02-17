@@ -25,34 +25,35 @@ class SearchResult():
 
 class wDBG():
     """ Basic DBG with associated edge weights """
-    def __init__(self, strings, k):
+    def __init__(self, strings, k, perc):
         """ Initialized with strings, k, and reference kmers """
         # Only explicitly store edges
         self.edges = {}
         self.k = k
         self._build(strings)
-#        self._cull_low()
+        self._cull_low(perc)
 
     def _build(self, strings):
         # Builds by taking a set of strings (reads), reference kmers
         # Any kmer not present in references is discarded
         sys.stderr.write("Building wDBG\n")
-        newkmerc = 0
         for si, string in enumerate(strings):
             sys.stderr.write(str(si) + "      \r")
             kmers = [string[i:i+self.k] for i in range(len(string)-self.k+1)]
-            newkmerc = 0
             for kmer in kmers:
                 if kmer in self.edges:
                     self.edges[kmer] += 1
                 else:
-                    newkmerc += 1
                     self.edges[kmer] = 1
 
-    def _cull_low(self, threshold=5):
-        keyvals = [(i,q) for i,q in self.edges.items()]
+    def _cull_low(self, perc=5):
+        # Provide a percentile p;
+        # Cull any kmers below p
+        vals = np.array(list(self.edges.values()))
+        percentile = np.percentile(vals, perc)
+        keyvals = [(k,v) for k,v in self.edges.items()]
         for key, val in keyvals:
-            if val <= threshold:
+            if val <= percentile:
                 del self.edges[key]            
 
     def score_against_bridge(self, query, bridge, bridge_scores):
@@ -227,7 +228,7 @@ class wDBG():
         for si, kmers in enumerate(kmersets):
             sr = self.query(kmers, seqsh[si], min_kmer_prop)
             debug_srs.append(sr)
-            scores.append((sr.score, sr.est_pid))
+            scores.append((sr.est_pid, sr.score))
 #        debug_srs[0].compare(debug_srs[1])
 
         # Sort and return results

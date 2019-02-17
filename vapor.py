@@ -16,7 +16,8 @@ optional arguments:
     --return_best_n     returns the best n hits [1]
     -o                  Combined output to files with prefix O, none by default
     -k                  Kmer length [21]
-    -t, --threshold     Pre-Filtering Score threshold [0.0]
+    -p                  Kmer weight percentile for culling [5]
+    -t, --threshold     Read pre-filtering Score threshold [0.0]
     -s, --subsample     Number of reads to subsample, no subsampling by default
     -m, --min_kmer_prop
                         Minimum proportion of kmers required [0.1]
@@ -88,7 +89,7 @@ def main(args):
         sys.exit(1)
 
     # Build the wDBG from reads
-    wdbg = vp.wDBG(reads, args.k)
+    wdbg = vp.wDBG(reads, args.k, args.percentile)
     sys.stderr.write("Got %d wdbg kmers\n" % len(wdbg.edges))
     if len(wdbg.edges) == 0:
         sys.stderr.write("Zero kmers remaining! None of the kmers in your reads were found in the database. More reads or a lower -k could help. \n")
@@ -150,8 +151,9 @@ if __name__ == '__main__':
 
     parser.add_argument("--return_best_n", type=int, default=1)
     parser.add_argument("-m", "--min_kmer_prop", type=float, help="Minimum proportion of mismatched kmers allowed [default=0.1]", nargs='?', default=0.1)
-    parser.add_argument("-k", type=int, help="Kmer Length [5 > int > 30, default=21]", nargs='?', default=21)
-    parser.add_argument("-t", "--threshold", type=float, help="Kmer filtering threshold [0 > float > 1, default=0.0]", nargs='?', default=0.0)
+    parser.add_argument("-k", type=int, help="Kmer Length [5 > int > 30, default=15]", nargs='?', default=15)
+    parser.add_argument("-t", "--threshold", type=float, help="Read kmer filtering threshold [0 > float > 1, default=0.0]", nargs='?', default=0.0)
+    parser.add_argument("-p", "--percentile", type=float, help="Percentile for kmer culling [0 > float > 100, default=0.0]", nargs='?', default=5)
     parser.add_argument("-fa", type=str, help="Fasta file")
     parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
     parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample [default=all reads]", nargs='?', default=None)
