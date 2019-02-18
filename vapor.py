@@ -67,10 +67,7 @@ def main(args):
 
     # Get database kmers for filtering
     sys.stderr.write("Getting database kmers\n")
-    dbkmers = vp.get_kmers(seqs, args.k)
-    dbkmersset = set()
-    for dbkmer in dbkmers:
-        dbkmersset.update(set(dbkmer))
+    dbkmersset = vp.get_kmers_set(seqs, args.k)
     sys.stderr.write("Got %d database kmers\n" % len(dbkmersset))
 
     # Parse and pre-filter reads
@@ -98,10 +95,6 @@ def main(args):
     sys.stderr.write("Culling lowest %d" % args.percentile + "% of kmers\n")
     wdbg.cull_low(args.percentile)
     sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
-    
-    # Cull kmers by aa membership in references
-    # Get dbkmerssetaa
-#    wdbg.cull_membership(dbkmerssetaa)
 
     if len(wdbg.edges) == 0:
         sys.stderr.write("Zero kmers remaining! None of the kmers in your reads were found in the database. More reads or a lower -k could help. \n")
@@ -109,7 +102,7 @@ def main(args):
 
     # Ask the wdbg to classify
     sys.stderr.write("Classifying\n")
-    path_results = wdbg.classify(dbkmers, seqsh, args.min_kmer_prop)
+    path_results = wdbg.classify(seqs, seqsh, args.min_kmer_prop)
     results = path_results[-args.return_best_n:]
     results = [(c, est_cov, score) for c, est_cov, score in results[::-1] if score != -1]
     if len(results) == 0:

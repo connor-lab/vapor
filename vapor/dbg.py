@@ -2,7 +2,6 @@
 import sys
 import numpy as np
 from collections import deque
-from Bio import pairwise2
 from vapor.vaporfunc import *
 
 class SearchResult():
