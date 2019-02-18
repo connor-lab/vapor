@@ -191,6 +191,9 @@ class wDBG():
                     bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl)
                     extra_scores = self.score_against_bridge(gapstring, bridge, bridge_scores)
                     filled_weight_array[gapl:gapr] = extra_scores
+            # Add the last k - 1 bases
+            filled_weight_array = np.concatenate((filled_weight_array, np.zeros(self.k-1)))
+            # Deque score
             filled_deque_array = self.deque_score_bases(filled_weight_array)
         else:
             filled_deque_array = raw_weight_array
