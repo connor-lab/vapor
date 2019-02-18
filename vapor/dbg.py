@@ -22,23 +22,19 @@ class SearchResult():
             else:
                 print(i, self.filled_deque_array[i])
 
-
 class wDBG():
     """ Basic DBG with associated edge weights """
-    def __init__(self, strings, k, perc):
+    def __init__(self, strings, k):
         """ Initialized with strings, k, and reference kmers """
         # Only explicitly store edges
         self.edges = {}
         self.k = k
         self._build(strings)
-        self._cull_low(perc)
 
     def _build(self, strings):
         # Builds by taking a set of strings (reads), reference kmers
         # Any kmer not present in references is discarded
-        sys.stderr.write("Building wDBG\n")
         for si, string in enumerate(strings):
-            sys.stderr.write(str(si) + "      \r")
             kmers = [string[i:i+self.k] for i in range(len(string)-self.k+1)]
             for kmer in kmers:
                 if kmer in self.edges:
@@ -46,7 +42,7 @@ class wDBG():
                 else:
                     self.edges[kmer] = 1
 
-    def _cull_low(self, perc=5):
+    def cull_low(self, perc=5):
         # Provide a percentile p;
         # Cull any kmers below p
         vals = np.array(list(self.edges.values()))
@@ -165,6 +161,7 @@ class wDBG():
         sr = SearchResult()
         raw_weight_array = self.get_raw_weight_array(kmers)
         kmer_cov = np.count_nonzero(raw_weight_array)/len(raw_weight_array)
+        print(seqsh, kmer_cov, min_kmer_prop)
         if kmer_cov > min_kmer_prop:
             filled_weight_array = raw_weight_array
             gaps = self.get_weight_array_gaps(raw_weight_array)
@@ -177,21 +174,9 @@ class wDBG():
                     if sum(bridge_scores_rev) > sum(bridge_scores):
                         extra_scores = self.score_against_bridge(gapstring_rev, bridge_rev, bridge_scores_rev)
                         filled_weight_array[gapl:gapr] = extra_scores
-#                        print("rev")
-#                        print(gapstring_rev)
-#                        print(kmers[gapl], kmers[gapr])
-#                        print(gapl, gapr, gapr-gapl, len(extra_scores), len(bridge_rev))
-#                        print(bridge_rev)
-#                        print(gapstring_rev)
-#                        print()
                     else:
                         extra_scores = self.score_against_bridge(gapstring, bridge, bridge_scores)
                         filled_weight_array[gapl:gapr] = extra_scores
-#                        print(kmers[gapl], kmers[gapr])
-#                        print(gapl, gapr, gapr-gapl, len(extra_scores), len(bridge))
-#                        print(bridge)
-#                        print(gapstring)
-#                        print()
 
                 elif gapr != len(kmers) and gapl == 0:
                     gapstring = kmers2str(kmers[gapl:gapr])[self.k-1:]
