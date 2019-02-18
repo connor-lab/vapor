@@ -52,15 +52,12 @@ class wDBG():
             if val <= percentile:
                 del self.edges[key]            
 
-    def score_against_bridge(self, query, bridge, bridge_scores):
-        # hamming distance, for now
-        scores = []
+    def mask_against_bridge(self, query, bridge, gapl):
+        mask = []
         for i in range(len(query)):
-            if query[i] == bridge[i]:
-                scores.append(bridge_scores[i])
-            else:
-                scores.append(-1)
-        return scores
+            if query[i] != bridge[i]:
+                mask.append(gapl+i)
+        return mask
 
     def extend_bridge(self, kmer, n, direction=1):
         string = kmer
@@ -164,6 +161,7 @@ class wDBG():
         if kmer_cov > min_kmer_prop:
             filled_weight_array = raw_weight_array
             gaps = self.get_weight_array_gaps(raw_weight_array)
+            all_masks = []
             for gapl, gapr in gaps:
                 if gapl != 0 and gapr != len(kmers):
                     gapstring = kmers2str(kmers[gapl:gapr])[self.k-1:]
@@ -171,30 +169,30 @@ class wDBG():
                     bridge_rev, bridge_scores_rev = self.extend_bridge(kmers[gapr], gapr-gapl, -1)
                     gapstring_rev = kmers2str(kmers[gapl:gapr])[:-self.k+1]
                     if sum(bridge_scores_rev) > sum(bridge_scores):
-                        extra_scores = self.score_against_bridge(gapstring_rev, bridge_rev, bridge_scores_rev)
-                        filled_weight_array[gapl:gapr] = extra_scores
+                        mask = self.mask_against_bridge(gapstring_rev, bridge_rev, gapl)
+                        filled_weight_array[gapl:gapr] = bridge_scores
                     else:
-                        extra_scores = self.score_against_bridge(gapstring, bridge, bridge_scores)
-                        filled_weight_array[gapl:gapr] = extra_scores
+                        mask = self.mask_against_bridge(gapstring, bridge, gapl)
+                        filled_weight_array[gapl:gapr] = bridge_scores
 
                 elif gapr != len(kmers) and gapl == 0:
                     gapstring = kmers2str(kmers[gapl:gapr])[self.k-1:]
                     bridge, bridge_scores = self.extend_bridge(kmers[gapr], gapr-gapl, -1)
-                    extra_scores = self.score_against_bridge(gapstring, bridge, bridge_scores)
-                    filled_weight_array[gapl:gapr] = extra_scores
-                    # only one direction
+                    mask = self.mask_against_bridge(gapstring, bridge, gapl)
+                    filled_weight_array[gapl:gapr] = bridge_scores
+
                 elif gapl > 0 and gapr == len(kmers):
-                    # only one direction
-                    for kmer in kmers[gapl:gapr]:
-                        assert kmer not in self.edges
                     gapstring = kmers2str(kmers[gapl:gapr])[self.k-1:]
                     bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl)
-                    extra_scores = self.score_against_bridge(gapstring, bridge, bridge_scores)
-                    filled_weight_array[gapl:gapr] = extra_scores
+                    mask = self.mask_against_bridge(gapstring, bridge, gapl)
+                    filled_weight_array[gapl:gapr] = bridge_scores
+                all_masks += mask
             # Add the last k - 1 bases
             filled_weight_array = np.concatenate((filled_weight_array, np.zeros(self.k-1)))
             # Deque score
             filled_deque_array = self.deque_score_bases(filled_weight_array)
+            for maski in all_masks:
+                filled_deque_array[maski] = 0
         else:
             filled_deque_array = raw_weight_array
             sr.est_pid = -1
