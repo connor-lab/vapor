@@ -76,7 +76,8 @@ def main(args):
     # Parse and pre-filter reads
     sys.stderr.write("Filtering reads\n")
     reads, nrawreads = vp.parse_and_prefilter(args.fq, dbkmersset, args.threshold, args.k)
-    sys.stderr.write("%d of %d reads survived\n" % (len(reads),nrawreads))
+    nreads = len(reads)
+    sys.stderr.write("%d of %d reads survived\n" % (nreads,nrawreads))
 
     # Subsample reads
     sys.stderr.write("Subsampling reads\n")
@@ -84,7 +85,7 @@ def main(args):
         reads = vp.subsample(reads, args.subsample)
 
     # Check there are still sequences remaining
-    if len(reads) == 0:
+    if nreads == 0:
         sys.stderr.write("Exiting. Is there any virus in your sequences? Try a lower filtering threshold.\n")
         sys.exit(1)
 
@@ -127,7 +128,7 @@ def main(args):
             if score != -1:
                 slen = len(seqs[c])
                 mean = str(score/slen)
-                scores_outf.write(str(est_cov) + "\t" + str(score) + "\t" + str(slen)+"\t" +str(mean) + "\t"+ str(len(reads)) + "\t"+seqsh[c] + "\n")
+                scores_outf.write(str(est_cov) + "\t" + str(score) + "\t" + str(slen)+"\t" +str(mean) + "\t"+ str(nreads) + "\t"+seqsh[c] + "\n")
         scores_outf.close()
         seqs_outf = open(args.output_prefix + ".fa", "w")
         for c, est_cov, score in results:
@@ -140,7 +141,7 @@ def main(args):
             if score != -1:
                 slen = len(seqs[c])
                 mean = str(score/slen)
-                print(str(est_cov) + "\t" + str(score)+"\t"+str(slen)+"\t" +str(mean) + "\t"+ str(len(reads)) + "\t"+seqsh[c])
+                print(str(est_cov) + "\t" + str(score)+"\t"+str(slen)+"\t" +str(mean) + "\t"+ str(nreads) + "\t"+seqsh[c])
 
 if __name__ == '__main__':
     # CLI
