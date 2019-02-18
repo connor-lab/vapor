@@ -207,19 +207,16 @@ class wDBG():
         sr.score = score
         return sr
 
-    def classify(self, kmersets, seqsh, min_kmer_prop):
+    def classify(self, seqs, seqsh, min_kmer_prop):
         scores = []
-        debug_srs = []
-        for si, kmers in enumerate(kmersets):
+        for si, seq in enumerate(seqs):
+            kmers = [seq[i:i+self.k] for i in range(len(seq)-self.k+1)]
             sr = self.query(kmers, seqsh[si], min_kmer_prop)
-            debug_srs.append(sr)
             scores.append((sr.est_pid, sr.score))
-#        debug_srs[0].compare(debug_srs[1])
 
         # Sort and return results
         results = []
         argsort = lambda x : sorted(range(len(x)), key=x.__getitem__)
-
         inds = argsort(scores)
         for ind in inds:
             results.append((ind, scores[ind][0], scores[ind][1]))

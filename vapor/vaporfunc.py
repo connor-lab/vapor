@@ -17,6 +17,14 @@ def get_kmers(strings,k):
         kmers.append([string[i:i+k] for i in range(len(string)-k+1)])
     return kmers
 
+def get_kmers_set(strings,k):
+    """ Takes strings and returns a set of kmers """
+    kmers = set()
+    for string in strings:
+        for kmer in [string[i:i+k] for i in range(len(string)-k+1)]:
+            kmers.add(kmer)
+    return kmers
+
 def rev_comp(read):
     read = read.replace("T", "a")
     read = read.replace("A", "t")
