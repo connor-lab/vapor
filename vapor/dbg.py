@@ -161,7 +161,6 @@ class wDBG():
         sr = SearchResult()
         raw_weight_array = self.get_raw_weight_array(kmers)
         kmer_cov = np.count_nonzero(raw_weight_array)/len(raw_weight_array)
-        print(seqsh, kmer_cov, min_kmer_prop)
         if kmer_cov > min_kmer_prop:
             filled_weight_array = raw_weight_array
             gaps = self.get_weight_array_gaps(raw_weight_array)
