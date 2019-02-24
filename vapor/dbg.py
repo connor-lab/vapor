@@ -8,15 +8,17 @@ from vapor.vaporfunc import *
 class SearchResult():
     def __init__(self):
         self.i = -1
+        self.kmers = []
         self.prop_kmers = -1
         self.gap_positions = []
-        self.suboptimal_branches = set()
+        self.bridges = {}
+        self.suboptimal_branches = None
         self.raw_array = []
         self.filled_array = []
         self.filled_deque_array = []
         self.raw_score = -1
         self.score = -1
-    def compare(self, sr):
+    def compare(self, sr, wdbg):
         gapset1 = set()
         for gapl, gapr in self.gap_positions:
             for gi in range(gapl, gapr):
@@ -40,8 +42,15 @@ class SearchResult():
                 tag1 += "b"
             if i in sr.suboptimal_branches:
                 tag2 += "b"
-            print(i, self.raw_array[i], self.filled_array[i], self.filled_deque_array[i], tag1, "\t", sr.raw_array[i], sr.filled_array[i], sr.filled_deque_array[i], tag2)
-
+            if i in sr.bridges:
+                tag2 += sr.bridges[i]
+            if i in self.bridges:
+                tag1 += self.bridges[i]
+            print(i, self.kmers[i], self.kmers[i] in wdbg.edges, self.raw_array[i], self.filled_array[i], self.filled_deque_array[i], tag1, "\t", sr.kmers[i], sr.kmers[i] in wdbg.edges, sr.raw_array[i], sr.filled_array[i], sr.filled_deque_array[i], tag2)
+        self_cycles = [kmer for kmer in self.kmers if self.kmers.count(kmer) > 1]
+        print("self cycles:", len(self_cycles))
+        sr_cycles = [kmer for kmer in self.kmers if sr.kmers.count(kmer) > 1]
+        print("sr cycles:", len(sr_cycles))
 
 class wDBG():
     """ Basic DBG with associated edge weights """
@@ -85,8 +94,8 @@ class wDBG():
     def extend_bridge(self, kmer, n, direction=1):
         # First check the cache
         if self.caching == True:
-            if (kmer, n) in self.path_cache:
-                return self.path_cache[(kmer, n)]
+            if (kmer, n, direction) in self.path_cache:
+                return self.path_cache[(kmer, n, direction)]
         string = kmer
         scorearr = np.zeros(n)
         if direction == 1:
@@ -126,7 +135,7 @@ class wDBG():
             string = string[:-len(kmer)]
             string = "X"*(n-len(string)) + string
         if self.caching == True:
-            self.path_cache[(kmer, n)] = (string, scorearr)
+            self.path_cache[(kmer, n, direction)] = (string, scorearr)
         return string, scorearr
 
     def get_raw_weight_array(self, kmers):
@@ -204,6 +213,7 @@ class wDBG():
 
     def query(self, kmers, seqsh, min_kmer_prop, debug=False):
         sr = SearchResult()
+        sr.kmers = kmers
         # First obtain the raw weight array for kmers of a sequence
         raw_weight_array = self.get_raw_weight_array(kmers)
         kmer_cov = np.count_nonzero(raw_weight_array)/len(raw_weight_array)
@@ -230,7 +240,7 @@ class wDBG():
                     gapstring_rev = kmers2str(kmers[gapl:gapr])[:-self.k+1]
                     if sum(bridge_scores_rev) > sum(bridge_scores):
                         mask = self.mask_against_bridge(gapstring_rev, bridge_rev, gapl)
-                        filled_weight_array[gapl:gapr] = bridge_scores
+                        filled_weight_array[gapl:gapr] = bridge_scores_rev
                     else:
                         mask = self.mask_against_bridge(gapstring, bridge, gapl)
                         filled_weight_array[gapl:gapr] = bridge_scores
@@ -249,6 +259,8 @@ class wDBG():
                 for mi in mask:
                     assert mi in range(gapl, gapr)
                 all_masks += mask
+                for i in range(gapl, gapr):
+                    sr.bridges[i] = bridge[i-gapl]
             # Add the last k - 1 bases
             filled_weight_array = np.concatenate((filled_weight_array, np.zeros(self.k-1)))
             sr.filled_array = filled_weight_array
@@ -289,7 +301,7 @@ class wDBG():
                     seq = seqs[hi]
                     kmers = [seq[i:i+self.k] for i in range(len(seq)-self.k+1)]
                     sr = self.query(kmers, seqsh[hi], min_kmer_prop, True)
-                    sr.compare(results[0])
+                    sr.compare(results[0], self)
                     print(sr.score)
 
         return results
