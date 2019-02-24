@@ -93,10 +93,10 @@ def main(args):
     if args.nocache == True:
             wdbg.caching = False
     
-    # Cull low percentile kmers
-#    sys.stderr.write("Culling lowest %d" % args.percentile + "% of kmers\n")
-#    wdbg.cull_low(args.percentile)
-#    sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
+    # Cull low coverage
+    sys.stderr.write("Culling kmers with coverage under %d" % args.min_kmer_cov + "% of kmers\n")
+    wdbg.cull_low(args.min_kmer_cov)
+    sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
 
     if len(wdbg.edges) == 0:
         sys.stderr.write("Zero kmers remaining! None of the kmers in your reads were found in the database. More reads or a lower -k could help. \n")

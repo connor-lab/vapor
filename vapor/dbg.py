@@ -44,10 +44,11 @@ class wDBG():
                 else:
                     self.edges[kmer] = 1
 
-    def cull_low(self, C=5):
+    def cull_low(self, min_cov=5):
         """
-        Culls kmers with a coverage less than C
+        Culls kmers with a coverage less than min_cov
         """
+        keyvals = [(k, v) for k, v in self.edges.items()]
         for key, val in keyvals:
             if val <= min_cov:
                 del self.edges[key]            
