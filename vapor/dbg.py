@@ -10,17 +10,38 @@ class SearchResult():
         self.i = -1
         self.prop_kmers = -1
         self.gap_positions = []
+        self.suboptimal_branches = set()
         self.raw_array = []
         self.filled_array = []
         self.filled_deque_array = []
         self.raw_score = -1
         self.score = -1
     def compare(self, sr):
+        gapset1 = set()
+        for gapl, gapr in self.gap_positions:
+            for gi in range(gapl, gapr):
+                gapset1.add(gi)
+        gapset2 = set()
+        for gapl, gapr in sr.gap_positions:
+            for gi in range(gapl, gapr):
+                gapset2.add(gi)
+
         for i in range(min(len(self.raw_array), len(sr.raw_array))):
+            tag1 = ""
+            tag2 = ""
             if self.filled_deque_array[i] != sr.filled_deque_array[i]:
-                print(i, self.raw_array[i], sr.raw_array[i], self.filled_deque_array[i], sr.filled_deque_array[i], "*")
-            else:
-                print(i, self.raw_array[i], sr.raw_array[i], self.filled_deque_array[i], sr.filled_deque_array[i])
+                tag1 += "*"
+                tag2 += "*"
+            if i in gapset1:
+                tag1 += "g"
+            if i in gapset2:
+                tag2 += "g"
+            if i in self.suboptimal_branches:
+                tag1 += "b"
+            if i in sr.suboptimal_branches:
+                tag2 += "b"
+            print(i, self.raw_array[i], self.filled_array[i], self.filled_deque_array[i], tag1, "\t", sr.raw_array[i], sr.filled_array[i], sr.filled_deque_array[i], tag2)
+
 
 class wDBG():
     """ Basic DBG with associated edge weights """
@@ -192,8 +213,10 @@ class wDBG():
         if kmer_cov > min_kmer_prop:
             # Get the gaps
             gaps = self.get_weight_array_gaps(raw_weight_array)
+            sr.gap_positions = gaps
             # Get the suboptimal branches
             sub = self.get_suboptimal_branches(kmers)
+            sr.suboptimal_branches = sub
             self.expand_gaps(gaps, sub, len(kmers))
             # Copy the raw weight array to modify
             filled_weight_array = [r for r in raw_weight_array]
@@ -228,6 +251,7 @@ class wDBG():
                 all_masks += mask
             # Add the last k - 1 bases
             filled_weight_array = np.concatenate((filled_weight_array, np.zeros(self.k-1)))
+            sr.filled_array = filled_weight_array
             # Deque score
             filled_deque_array = self.deque_score_bases(filled_weight_array)
             for maski in all_masks:

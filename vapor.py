@@ -94,7 +94,7 @@ def main(args):
             wdbg.caching = False
     
     # Cull low coverage
-    sys.stderr.write("Culling kmers with coverage under %d" % args.min_kmer_cov + "% of kmers\n")
+    sys.stderr.write("Culling kmers with coverage under %d \n" % args.min_kmer_cov)
     wdbg.cull_low(args.min_kmer_cov)
     sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
 
