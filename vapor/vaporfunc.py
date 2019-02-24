@@ -49,17 +49,27 @@ def parse_and_prefilter(fqs, dbkmers, threshold, k):
                 ktotal = int(len(stripped)/k)
                 # Don't allow Ns in read
                 # Don't allow reads < k
+                fwd = stripped
                 rev = rev_comp(stripped)
-                for tmpseq in [stripped, rev]: 
-                    kcount = 0
-                    if "N" not in tmpseq and len(tmpseq) >= k:
-                        for i in range(0, len(tmpseq)-k+1, k):
-                            if tmpseq[i:i+k] in dbkmers:
-                                kcount += 1
-                                if kcount/ktotal > threshold:
-                                    reads.append(tmpseq)
-                                    # As soon as our threshold is exceeded, break
-                                    break
+                revkcount = 0
+                fwdkcount = 0
+                if "N" not in stripped and len(stripped) >= k:
+                    for i in range(0, len(fwd)-k+1, k):
+                        if fwd[i:i+k] in dbkmers:
+                            fwdkcount += 1
+                    fwdfrac = fwdkcount/ktotal
+                    for i in range(0, len(rev)-k+1, k):
+                        if rev[i:i+k] in dbkmers:
+                            revkcount += 1
+                    revfrac = revkcount/ktotal
+                    if revfrac > fwdfrac:
+                        toadd = rev
+                        frac = revfrac
+                    else:
+                        toadd = fwd
+                        frac = fwdfrac
+                    if frac > threshold:
+                        reads.append(toadd)
             c += 1                  
             if c == 4:
                 c = 0

@@ -31,7 +31,7 @@ class SearchResult():
         for i in range(min(len(self.raw_array), len(sr.raw_array))):
             tag1 = ""
             tag2 = ""
-            if self.filled_deque_array[i] != sr.filled_deque_array[i]:
+            if self.kmers[i] != sr.kmers[i]:
                 tag1 += "*"
                 tag2 += "*"
             if i in gapset1:
