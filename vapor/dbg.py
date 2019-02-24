@@ -30,6 +30,8 @@ class wDBG():
         self.edges = {}
         self.k = k
         self._build(strings)
+        self.caching = True
+        self.path_cache = {}
 
     def _build(self, strings):
         # Builds by taking a set of strings (reads), reference kmers
@@ -70,6 +72,10 @@ class wDBG():
         return mask
 
     def extend_bridge(self, kmer, n, direction=1):
+        # First check the cache
+        if self.caching == True:
+            if (kmer, n) in self.path_cache:
+                return self.path_cache[(kmer, n)]
         string = kmer
         scorearr = np.zeros(n)
         if direction == 1:
@@ -108,6 +114,8 @@ class wDBG():
         elif direction == -1:
             string = string[:-len(kmer)]
             string = "X"*(n-len(string)) + string
+        if self.caching == True:
+            self.path_cache[(kmer, n)] = (string, scorearr)
         return string, scorearr
 
     def get_raw_weight_array(self, kmers):
