@@ -190,9 +190,10 @@ class wDBG():
             if kmer in self.edges:
                 score = self.edges[kmer]
                 alts = [kmer[:-1] + b for b in bases]
-                altscore = max([self.edges[amer] for amer in alts if amer in self.edges])
-                if score < altscore:
-                    suboptimal_branches.add(ki)
+                altscores = [self.edges[amer] for amer in alts if amer in self.edges]
+                if altscores != []:
+                    if score < max(altscore):
+                        suboptimal_branches.add(ki)
         return suboptimal_branches 
 
     def expand_gaps(self, gaps, suboptimal_branches, max_gapr):        
