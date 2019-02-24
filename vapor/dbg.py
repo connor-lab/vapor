@@ -277,7 +277,7 @@ class wDBG():
             sr.est_pid = -1
             sr.score = -1
             return sr
-        if deug == True:
+        if debug == True:
             sr.filled_deque_array = filled_deque_array
         nonzeros = [i for i in filled_deque_array if i > 0]
         est_pid = len(nonzeros)/len(filled_deque_array)
@@ -290,7 +290,7 @@ class wDBG():
         scores = []
         for si, seq in enumerate(seqs):
             kmers = [seq[i:i+self.k] for i in range(len(seq)-self.k+1)]
-            sr = self.query(kmers, seqsh[si], min_kmer_prop, (debug_query != False))
+            sr = self.query(kmers, seqsh[si], min_kmer_prop, (debug_query != None))
             sr.header = seqsh[si]
             sr.index = si
             scores.append(sr)
