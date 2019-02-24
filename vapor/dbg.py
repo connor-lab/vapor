@@ -192,7 +192,7 @@ class wDBG():
                 alts = [kmer[:-1] + b for b in bases]
                 altscores = [self.edges[amer] for amer in alts if amer in self.edges]
                 if altscores != []:
-                    if score < max(altscore):
+                    if score < max(altscores):
                         suboptimal_branches.add(ki)
         return suboptimal_branches 
 
