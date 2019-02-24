@@ -32,6 +32,7 @@ class wDBG():
         self._build(strings)
         self.caching = True
         self.path_cache = {}
+        self.max_trim_size = self.k+1
 
     def _build(self, strings):
         # Builds by taking a set of strings (reads), reference kmers
@@ -134,7 +135,7 @@ class wDBG():
             if val != 0:
                 if in_gap == True:
                     gapr = ki
-                    gaps.append((gapl, gapr))
+                    gaps.append([gapl, gapr])
  
                 in_gap = False
             else:
@@ -143,7 +144,7 @@ class wDBG():
                 in_gap = True
         if in_gap == True:
             gapr = len(array)
-            gaps.append((gapl, gapr))
+            gaps.append([gapl, gapr])
         return gaps    
 
     def deque_score_bases(self, array):
@@ -163,16 +164,49 @@ class wDBG():
         local_maxima[-1] = array[deq[0]]
         return local_maxima            
 
+    def get_suboptimal_branches(self, kmers):
+        suboptimal_branches = set()
+        bases = list("ATCG")
+        for ki, kmer in enumerate(kmers):
+            if kmer in self.edges:
+                score = self.edges[kmer]
+                alts = [kmer[:-1] + b for b in bases]
+                altscore = max([self.edges[amer] for amer in alts if amer in self.edges])
+                if score < altscore:
+                    suboptimal_branches.add(ki)
+        return suboptimal_branches 
+
+    def expand_gaps(self, gaps, suboptimal_branches, max_gapr):        
+        """ 
+        Acts in place to expand gaps to suboptimal branch positions
+        takes the must distant sub branch within self.max_trim_size
+         """
+        for gapi, gap in enumerate(gaps):
+            gapl, gapr = gap
+            for li in range(max(0, gapl-self.max_trim_size), gapl):
+                if li in suboptimal_branches:
+                    print("expanding:")
+                    gaps[gapi][0] = li
+                    break
+            for ri in range(min(gapr + self.max_trim_size, max_gapr), gapr, -1):
+                if ri in suboptimal_branches:
+                    gaps[gapi][1] = ri
+                    break
+
     def query(self, kmers, seqsh, min_kmer_prop, debug=False):
         sr = SearchResult()
         # First obtain the raw weight array for kmers of a sequence
         raw_weight_array = self.get_raw_weight_array(kmers)
         kmer_cov = np.count_nonzero(raw_weight_array)/len(raw_weight_array)
+        # Next trim the raw weight array
         if debug==True:
             sr.raw_array = raw_weight_array
         if kmer_cov > min_kmer_prop:
             # Get the gaps
             gaps = self.get_weight_array_gaps(raw_weight_array)
+            # Get the suboptimal branches
+            sub = self.get_suboptimal_branches(kmers)
+            self.expand_gaps(gaps, sub, len(kmers))
             # Copy the raw weight array to modify
             filled_weight_array = [r for r in raw_weight_array]
 #            print(gaps)
@@ -210,7 +244,7 @@ class wDBG():
             filled_deque_array = self.deque_score_bases(filled_weight_array)
             for maski in all_masks:
 #                print(maski, raw_weight_array[maski])
-                assert raw_weight_array[maski] == 0
+#                assert raw_weight_array[maski] == 0
                 filled_deque_array[maski] = 0
         else:
             sr.filled_deque_array = raw_weight_array
