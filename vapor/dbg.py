@@ -214,24 +214,27 @@ class wDBG():
 
     def query(self, kmers, seqsh, min_kmer_prop, debug=False):
         sr = SearchResult()
-        sr.kmers = kmers
         # First obtain the raw weight array for kmers of a sequence
         raw_weight_array = self.get_raw_weight_array(kmers)
         kmer_cov = np.count_nonzero(raw_weight_array)/len(raw_weight_array)
         # Next trim the raw weight array
         if debug==True:
             sr.raw_array = raw_weight_array
+            sr.kmers = kmers
         if kmer_cov > min_kmer_prop:
             # Get the gaps
             gaps = self.get_weight_array_gaps(raw_weight_array)
-            sr.gap_positions = gaps
             # Get the suboptimal branches
             sub = self.get_suboptimal_branches(kmers)
-            sr.suboptimal_branches = sub
             self.expand_gaps(gaps, sub, len(kmers))
-            # Copy the raw weight array to modify
-            filled_weight_array = [r for r in raw_weight_array]
-#            print(gaps)
+            if debug == True:
+                # Copy the raw weight as a record
+                sr.suboptimal_branches = sub
+                sr.gap_positions = gaps
+                filled_weight_array = [r for r in raw_weight_array]
+            else:
+                # Don't copy
+                filled_weight_array = raw_weight_array
             all_masks = []
             for gapl, gapr in gaps:
                 if gapl != 0 and gapr != len(kmers):
@@ -257,26 +260,25 @@ class wDBG():
                     bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl)
                     mask = self.mask_against_bridge(gapstring, bridge, gapl)
                     filled_weight_array[gapl:gapr] = bridge_scores
-                for mi in mask:
-                    assert mi in range(gapl, gapr)
                 all_masks += mask
-                for i in range(gapl, gapr):
-                    sr.bridges[i] = bridge[i-gapl]
-            # Add the last k - 1 bases
-            filled_weight_array = np.concatenate((filled_weight_array, np.zeros(self.k-1)))
-            sr.filled_array = filled_weight_array
+                if debug == True:
+                    for i in range(gapl, gapr):
+                        sr.bridges[i] = bridge[i-gapl]
+            if debug == True:
+                sr.filled_array = filled_weight_array
             # Deque score
+            filled_weight_array = np.concatenate((filled_weight_array, np.zeros(self.k-1)))
             filled_deque_array = self.deque_score_bases(filled_weight_array)
             for maski in all_masks:
-#                print(maski, raw_weight_array[maski])
-#                assert raw_weight_array[maski] == 0
                 filled_deque_array[maski] = 0
         else:
-            sr.filled_deque_array = raw_weight_array
+            if debug == True:
+                sr.filled_deque_array = raw_weight_array
             sr.est_pid = -1
             sr.score = -1
             return sr
-        sr.filled_deque_array = filled_deque_array
+        if deug == True:
+            sr.filled_deque_array = filled_deque_array
         nonzeros = [i for i in filled_deque_array if i > 0]
         est_pid = len(nonzeros)/len(filled_deque_array)
         sr.est_pid = est_pid
@@ -297,6 +299,7 @@ class wDBG():
         results = sorted(scores, key = lambda x: (x.score, x.est_pid), reverse=True)
 
         if debug_query != None:
+            # For debugging
             for hi, h in enumerate(seqsh):
                 if h == debug_query:
                     seq = seqs[hi]
