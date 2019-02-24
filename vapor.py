@@ -92,9 +92,9 @@ def main(args):
     sys.stderr.write("Got %d wdbg kmers\n" % len(wdbg.edges))
     
     # Cull low percentile kmers
-    sys.stderr.write("Culling lowest %d" % args.percentile + "% of kmers\n")
-    wdbg.cull_low(args.percentile)
-    sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
+#    sys.stderr.write("Culling lowest %d" % args.percentile + "% of kmers\n")
+#    wdbg.cull_low(args.percentile)
+#    sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
 
     if len(wdbg.edges) == 0:
         sys.stderr.write("Zero kmers remaining! None of the kmers in your reads were found in the database. More reads or a lower -k could help. \n")
@@ -102,57 +102,58 @@ def main(args):
 
     # Ask the wdbg to classify
     sys.stderr.write("Classifying\n")
-    path_results = wdbg.classify(seqs, seqsh, args.min_kmer_prop)
-    results = path_results[-args.return_best_n:]
-    results = [(c, est_cov, score) for c, est_cov, score in results[::-1] if score != -1]
+    path_results = wdbg.classify(seqs, seqsh, args.min_kmer_prop, args.debug_query)
+    results = path_results[:args.return_best_n]
+    results = [(sr.index, sr.est_pid, sr.score) for sr in results if sr != -1]
     if len(results) == 0:
         sys.stderr.write("No hits. Try a lower -m threshold\n")
         sys.exit(1)
 
     # Output results
     if args.return_seqs == True:
-        for c, est_cov, score in results:
+        for c, est_pid, score in results:
             if score != -1:
                 print(seqsh[c])
                 print(seqs[c])
     elif args.output_prefix != None:
         scores_outf = open(args.output_prefix + ".out", "w")
-        for c, est_cov, score in results:
+        for c, est_pid, score in results:
             if score != -1:
                 slen = len(seqs[c])
                 mean = str(score/slen)
-                scores_outf.write(str(est_cov) + "\t" + str(score) + "\t" + str(slen)+"\t" +str(mean) + "\t"+ str(nreads) + "\t"+seqsh[c] + "\n")
+                scores_outf.write(str(est_pid) + "\t" + str(score) + "\t" + str(slen)+"\t" +str(mean) + "\t"+ str(nreads) + "\t"+seqsh[c] + "\n")
         scores_outf.close()
         seqs_outf = open(args.output_prefix + ".fa", "w")
-        for c, est_cov, score in results:
+        for c, est_pid, score in results:
             if score != -1:
                 seqs_outf.write(seqsh[c]+"\n")
                 seqs_outf.write(seqs[c]+"\n")
         seqs_outf.close()
     else:
-         for c, est_cov, score in results:
+         for c, est_pid, score in results:
             if score != -1:
                 slen = len(seqs[c])
                 mean = str(score/slen)
-                print(str(est_cov) + "\t" + str(score)+"\t"+str(slen)+"\t" +str(mean) + "\t"+ str(nreads) + "\t"+seqsh[c])
+                print(str(est_pid) + "\t" + str(score)+"\t"+str(slen)+"\t" +str(mean) + "\t"+ str(nreads) + "\t"+seqsh[c])
 
 if __name__ == '__main__':
     # CLI
     parser = argparse.ArgumentParser(description="Do some viral classification!")
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("-q", "--quiet", action="store_true")
-    group2 = parser.add_mutually_exclusive_group()
-    group2.add_argument("--return_seqs", action="store_true")
-    group2.add_argument("-o", "--output_prefix", type=str, help="Prefix to write full output to, stout by default", nargs='?', default=None)
+    group.add_argument("--return_seqs", action="store_true")
+    group.add_argument("-o", "--output_prefix", type=str, help="Prefix to write full output to, stout by default", nargs='?', default=None)
 
+    parser.add_argument("-q", "--quiet", action="store_true", default=False)
     parser.add_argument("--return_best_n", type=int, default=1)
-    parser.add_argument("-m", "--min_kmer_prop", type=float, help="Minimum proportion of mismatched kmers allowed [default=0.1]", nargs='?', default=0.1)
+    parser.add_argument("-m", "--min_kmer_prop", type=float, help="Minimum proportion of matched kmers allowed for queries [default=0.1]", nargs='?', default=0.1)
     parser.add_argument("-k", type=int, help="Kmer Length [5 > int > 30, default=15]", nargs='?', default=15)
     parser.add_argument("-t", "--threshold", type=float, help="Read kmer filtering threshold [0 > float > 1, default=0.0]", nargs='?', default=0.0)
     parser.add_argument("-p", "--percentile", type=float, help="Percentile for kmer culling [0 > float > 100, default=0.0]", nargs='?', default=5)
     parser.add_argument("-fa", type=str, help="Fasta file")
     parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
     parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample [default=all reads]", nargs='?', default=None)
+    parser.add_argument("-dbg", "--debug_query", type=str, help="Debug query [default=all reads]", nargs='?', default=None)
+
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)

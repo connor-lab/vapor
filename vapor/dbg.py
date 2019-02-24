@@ -1,6 +1,7 @@
 """ DBG classes and related objects """
 import sys
 import numpy as np
+np.set_printoptions(threshold=np.nan)
 from collections import deque
 from vapor.vaporfunc import *
 
@@ -15,11 +16,11 @@ class SearchResult():
         self.raw_score = -1
         self.score = -1
     def compare(self, sr):
-        for i in range(len(self.filled_deque_array)):
+        for i in range(min(len(self.raw_array), len(sr.raw_array))):
             if self.filled_deque_array[i] != sr.filled_deque_array[i]:
-                print(i, self.filled_deque_array[i], sr.filled_deque_array[i], "*")
+                print(i, self.raw_array[i], sr.raw_array[i], self.filled_deque_array[i], sr.filled_deque_array[i], "*")
             else:
-                print(i, self.filled_deque_array[i])
+                print(i, self.raw_array[i], sr.raw_array[i], self.filled_deque_array[i], sr.filled_deque_array[i])
 
 class wDBG():
     """ Basic DBG with associated edge weights """
@@ -51,6 +52,16 @@ class wDBG():
             if val <= percentile:
                 del self.edges[key]            
 
+    def cull_low(self, perc=5):
+        # Provide a percentile p;
+        # Cull any kmers below p
+        vals = np.array(list(self.edges.values()))
+        percentile = np.percentile(vals, perc)
+        keyvals = [(k,v) for k,v in self.edges.items()]
+        for key, val in keyvals:
+            if val <= percentile:
+                del self.edges[key]            
+
     def mask_against_bridge(self, query, bridge, gapl):
         mask = []
         for i in range(len(query)):
@@ -60,8 +71,7 @@ class wDBG():
 
     def extend_bridge(self, kmer, n, direction=1):
         string = kmer
-        scorearr = np.empty(n)
-        scorearr.fill(-1)
+        scorearr = np.zeros(n)
         if direction == 1:
             si = 0
         else:
@@ -105,8 +115,6 @@ class wDBG():
         for ki, kmer in enumerate(kmers):
             if kmer in self.edges:
                 array[ki] = self.edges[kmer]
-            else:
-                array[ki] = 0
         return array
     
     def get_weight_array_gaps(self, array):
@@ -138,28 +146,28 @@ class wDBG():
         deq = deque(maxlen=self.k)
         deq.append(0)
         for ki in range(1, len(array)):
-            if array[ki-1] == -1:
-                local_maxima[ki-1] = 0
-            else:
-                local_maxima[ki-1] = array[deq[0]]
+            local_maxima[ki-1] = array[deq[0]]
             while deq and deq[0] <= ki-self.k:
                 deq.popleft()
             while deq and array[ki] >= array[deq[-1]]:
                 deq.pop()
             deq.append(ki)
-        if array[-1] == -1:
-            local_maxima[-1] = 0
-        else:
-            local_maxima[-1] = array[deq[0]]
+        local_maxima[-1] = array[deq[0]]
         return local_maxima            
 
-    def query(self, kmers, seqsh, min_kmer_prop):
+    def query(self, kmers, seqsh, min_kmer_prop, debug=False):
         sr = SearchResult()
+        # First obtain the raw weight array for kmers of a sequence
         raw_weight_array = self.get_raw_weight_array(kmers)
         kmer_cov = np.count_nonzero(raw_weight_array)/len(raw_weight_array)
+        if debug==True:
+            sr.raw_array = raw_weight_array
         if kmer_cov > min_kmer_prop:
-            filled_weight_array = raw_weight_array
+            # Get the gaps
             gaps = self.get_weight_array_gaps(raw_weight_array)
+            # Copy the raw weight array to modify
+            filled_weight_array = [r for r in raw_weight_array]
+#            print(gaps)
             all_masks = []
             for gapl, gapr in gaps:
                 if gapl != 0 and gapr != len(kmers):
@@ -185,20 +193,23 @@ class wDBG():
                     bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl)
                     mask = self.mask_against_bridge(gapstring, bridge, gapl)
                     filled_weight_array[gapl:gapr] = bridge_scores
+                for mi in mask:
+                    assert mi in range(gapl, gapr)
                 all_masks += mask
             # Add the last k - 1 bases
             filled_weight_array = np.concatenate((filled_weight_array, np.zeros(self.k-1)))
             # Deque score
             filled_deque_array = self.deque_score_bases(filled_weight_array)
             for maski in all_masks:
+#                print(maski, raw_weight_array[maski])
+                assert raw_weight_array[maski] == 0
                 filled_deque_array[maski] = 0
         else:
-            filled_deque_array = raw_weight_array
+            sr.filled_deque_array = raw_weight_array
             sr.est_pid = -1
             sr.score = -1
             return sr
         sr.filled_deque_array = filled_deque_array
-        np.set_printoptions(threshold=np.nan)
         nonzeros = [i for i in filled_deque_array if i > 0]
         est_pid = len(nonzeros)/len(filled_deque_array)
         sr.est_pid = est_pid
@@ -206,19 +217,25 @@ class wDBG():
         sr.score = score
         return sr
 
-    def classify(self, seqs, seqsh, min_kmer_prop):
+    def classify(self, seqs, seqsh, min_kmer_prop, debug_query=None):
         scores = []
         for si, seq in enumerate(seqs):
             kmers = [seq[i:i+self.k] for i in range(len(seq)-self.k+1)]
-            sr = self.query(kmers, seqsh[si], min_kmer_prop)
-            scores.append((sr.est_pid, sr.score))
+            sr = self.query(kmers, seqsh[si], min_kmer_prop, (debug_query != False))
+            sr.header = seqsh[si]
+            sr.index = si
+            scores.append(sr)
 
-        # Sort and return results
-        results = []
-        argsort = lambda x : sorted(range(len(x)), key=x.__getitem__)
-        inds = argsort(scores)
-        for ind in inds:
-            results.append((ind, scores[ind][0], scores[ind][1]))
+        # Sort the results
+        results = sorted(scores, key = lambda x: (x.score, x.est_pid), reverse=True)
+
+        if debug_query != None:
+            for hi, h in enumerate(seqsh):
+                if h == debug_query:
+                    seq = seqs[hi]
+                    kmers = [seq[i:i+self.k] for i in range(len(seq)-self.k+1)]
+                    sr = self.query(kmers, seqsh[hi], min_kmer_prop, True)
+                    sr.compare(results[0])
+                    print(sr.score)
+
         return results
-
-
