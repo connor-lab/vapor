@@ -16,7 +16,7 @@ optional arguments:
     --return_best_n     returns the best n hits [1]
     -o                  Combined output to files with prefix O, none by default
     -k                  Kmer length [21]
-    -p                  Kmer weight percentile for culling [5]
+    -c, --min_kmer_cov  Minimum kmer coverage for culling [5]
     -t, --threshold     Read pre-filtering Score threshold [0.0]
     -s, --subsample     Number of reads to subsample, no subsampling by default
     -m, --min_kmer_prop
@@ -90,6 +90,8 @@ def main(args):
     sys.stderr.write("Building wDBG\n")
     wdbg = vp.wDBG(reads, args.k)
     sys.stderr.write("Got %d wdbg kmers\n" % len(wdbg.edges))
+    if args.nocache == True:
+            wdbg.caching = False
     
     # Cull low percentile kmers
 #    sys.stderr.write("Culling lowest %d" % args.percentile + "% of kmers\n")
@@ -148,11 +150,12 @@ if __name__ == '__main__':
     parser.add_argument("-m", "--min_kmer_prop", type=float, help="Minimum proportion of matched kmers allowed for queries [default=0.1]", nargs='?', default=0.1)
     parser.add_argument("-k", type=int, help="Kmer Length [5 > int > 30, default=15]", nargs='?', default=15)
     parser.add_argument("-t", "--threshold", type=float, help="Read kmer filtering threshold [0 > float > 1, default=0.0]", nargs='?', default=0.0)
-    parser.add_argument("-p", "--percentile", type=float, help="Percentile for kmer culling [0 > float > 100, default=0.0]", nargs='?', default=5)
+    parser.add_argument("-c", "--min_kmer_cov", type=float, help="Minimum coverage kmer culling [default=5]", nargs='?', default=5)
     parser.add_argument("-fa", type=str, help="Fasta file")
     parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
     parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample [default=all reads]", nargs='?', default=None)
     parser.add_argument("-dbg", "--debug_query", type=str, help="Debug query [default=all reads]", nargs='?', default=None)
+    parser.add_argument("--nocache", action="store_true", default=False)
 
 
     if len(sys.argv)==1:

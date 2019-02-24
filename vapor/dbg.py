@@ -44,24 +44,12 @@ class wDBG():
                 else:
                     self.edges[kmer] = 1
 
-    def cull_low(self, perc=5):
-        # Provide a percentile p;
-        # Cull any kmers below p
-        vals = np.array(list(self.edges.values()))
-        percentile = np.percentile(vals, perc)
-        keyvals = [(k,v) for k,v in self.edges.items()]
+    def cull_low(self, C=5):
+        """
+        Culls kmers with a coverage less than C
+        """
         for key, val in keyvals:
-            if val <= percentile:
-                del self.edges[key]            
-
-    def cull_low(self, perc=5):
-        # Provide a percentile p;
-        # Cull any kmers below p
-        vals = np.array(list(self.edges.values()))
-        percentile = np.percentile(vals, perc)
-        keyvals = [(k,v) for k,v in self.edges.items()]
-        for key, val in keyvals:
-            if val <= percentile:
+            if val <= min_cov:
                 del self.edges[key]            
 
     def mask_against_bridge(self, query, bridge, gapl):

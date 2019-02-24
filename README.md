@@ -17,6 +17,7 @@ USAGE:
         -k K                Kmer length [21]
         -t T                Pre-Filtering Score threshold [0.0]
         -s S                Number of reads to sub-sample
+        -c, --min_kmer_cov  Minimum kmer coverage for culling [5]
         -m, --min_kmer_prop
                             Minimum proportion of kmers required [0.1]
         -fa FA              Fasta file
