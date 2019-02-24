@@ -185,7 +185,6 @@ class wDBG():
             gapl, gapr = gap
             for li in range(max(0, gapl-self.max_trim_size), gapl):
                 if li in suboptimal_branches:
-                    print("expanding:")
                     gaps[gapi][0] = li
                     break
             for ri in range(min(gapr + self.max_trim_size, max_gapr), gapr, -1):
