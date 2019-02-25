@@ -61,4 +61,6 @@ To test, run:
 
 which should yield:
 
-    >cds:ADO12563 A/Chile/3935/2009 2009/07/07
+    0.9782480893592005  191190.0    1701    112.39858906525573  1000    >cds:ADO12563 A/Chile/3935/2009 2009/07/07 HA H1N1 Human
+
+Where the tab-delimited fields correspond to: percentage of matching bases; total score; query length; mean score; number of reads surviving culling; query description

@@ -6,7 +6,12 @@ from collections import deque
 from vapor.vaporfunc import *
 
 class SearchResult():
+    """
+    Class to hold search results and methods
+    Used for debugging
+    """
     def __init__(self):
+        # Most variables are unused unless debugging is specified
         self.i = -1
         self.kmers = []
         self.prop_kmers = -1
@@ -16,9 +21,14 @@ class SearchResult():
         self.raw_array = []
         self.filled_array = []
         self.filled_deque_array = []
-        self.raw_score = -1
         self.score = -1
+
     def compare(self, sr, wdbg):
+        """
+        For debugging; function to compare a search result with
+        a specific query; outputs per-base query seeding,
+        trimming, bridging, and scoring information
+        """
         gapset1 = set()
         for gapl, gapr in self.gap_positions:
             for gi in range(gapl, gapr):
@@ -65,8 +75,6 @@ class wDBG():
         self.max_trim_size = self.k+1
 
     def _build(self, strings):
-        # Builds by taking a set of strings (reads), reference kmers
-        # Any kmer not present in references is discarded
         for si, string in enumerate(strings):
             kmers = [string[i:i+self.k] for i in range(len(string)-self.k+1)]
             for kmer in kmers:
@@ -85,6 +93,10 @@ class wDBG():
                 del self.edges[key]            
 
     def mask_against_bridge(self, query, bridge, gapl):
+        """
+        Takes two strings; returns indices where they mismatch
+        offset by gapl
+        """
         mask = []
         for i in range(len(query)):
             if query[i] != bridge[i]:
@@ -92,6 +104,11 @@ class wDBG():
         return mask
 
     def extend_bridge(self, kmer, n, direction=1):
+        """
+        Walks along the wDBG n positions
+        making heuristic locally optimal decisions
+        at branches. Returns string, score array
+        """
         # First check the cache
         if self.caching == True:
             if (kmer, n, direction) in self.path_cache:
@@ -139,6 +156,11 @@ class wDBG():
         return string, scorearr
 
     def get_raw_weight_array(self, kmers):
+        """
+        Takes a sequence of kmers, and returns
+        an array of weights, zero if a kmer is
+        not present in the graph
+        """
         array = np.zeros(len(kmers))
         for ki, kmer in enumerate(kmers):
             if kmer in self.edges:
@@ -146,6 +168,10 @@ class wDBG():
         return array
     
     def get_weight_array_gaps(self, array):
+        """
+        Obtains positions of gaps (sequences of zeroes)
+        in an array
+        """
         in_gap = False
         gapl = -1
         gapr = -1
@@ -167,9 +193,12 @@ class wDBG():
         return gaps    
 
     def deque_score_bases(self, array):
-        """ For each contiguous stretch of kmers that are present
-            uses a deque to find local maxima
-            to approximate coverage of a base """
+        """ 
+        For a weight array corresponding to a 
+        contiguous stretch of kmers,
+        uses a deque to find max weight that contains a base,
+        returning another array
+        """
         local_maxima = np.zeros(len(array))
         deq = deque(maxlen=self.k)
         deq.append(0)
@@ -184,6 +213,11 @@ class wDBG():
         return local_maxima            
 
     def get_suboptimal_branches(self, kmers):
+        """
+        Walks backward along an array of kmers until a
+        step is detected that is suboptimal
+        returns positions of these branches
+        """
         suboptimal_branches = set()
         bases = list("ATCG")
         for ki, kmer in enumerate(kmers):
@@ -199,8 +233,8 @@ class wDBG():
     def expand_gaps(self, gaps, suboptimal_branches, max_gapr):        
         """ 
         Acts in place to expand gaps to suboptimal branch positions
-        takes the must distant sub branch within self.max_trim_size
-         """
+        takes the most distant sub branch within self.max_trim_size
+        """
         for gapi, gap in enumerate(gaps):
             gapl, gapr = gap
             for li in range(max(0, gapl-self.max_trim_size), gapl):
@@ -212,7 +246,13 @@ class wDBG():
                     gaps[gapi][1] = ri
                     break
 
-    def query(self, kmers, seqsh, min_kmer_prop, debug=False):
+    def query(self, kmers, min_kmer_prop, debug=False):
+        """ 
+        Takes a query set of kmers,
+        param min_kmer_prop and debug flag 
+        for recording information in search result.
+        Returns a SearchResult object
+        """
         sr = SearchResult()
         # First obtain the raw weight array for kmers of a sequence
         raw_weight_array = self.get_raw_weight_array(kmers)
@@ -233,7 +273,7 @@ class wDBG():
                 sr.gap_positions = gaps
                 filled_weight_array = [r for r in raw_weight_array]
             else:
-                # Don't copy
+                # Don't copy, not debugging
                 filled_weight_array = raw_weight_array
             all_masks = []
             for gapl, gapr in gaps:
@@ -279,6 +319,7 @@ class wDBG():
             return sr
         if debug == True:
             sr.filled_deque_array = filled_deque_array
+        # Sum, also get estimated pid
         nonzeros = [i for i in filled_deque_array if i > 0]
         est_pid = len(nonzeros)/len(filled_deque_array)
         sr.est_pid = est_pid
@@ -287,10 +328,15 @@ class wDBG():
         return sr
 
     def classify(self, seqs, seqsh, min_kmer_prop, debug_query=None):
+        """
+        Queries a set of sequences seqs, with headers seqsh,
+        parameter min_kmer_prop
+        and if debugging, a debug query
+        """
         scores = []
         for si, seq in enumerate(seqs):
             kmers = [seq[i:i+self.k] for i in range(len(seq)-self.k+1)]
-            sr = self.query(kmers, seqsh[si], min_kmer_prop, (debug_query != None))
+            sr = self.query(kmers, min_kmer_prop, (debug_query != None))
             sr.header = seqsh[si]
             sr.index = si
             scores.append(sr)
