@@ -20,7 +20,7 @@ optional arguments:
     -t, --threshold     Read pre-filtering Score threshold [0.0]
     -s, --subsample     Number of reads to subsample, no subsampling by default
     -m, --min_kmer_prop
-                        Minimum proportion of kmers required [0.3]
+                        Minimum proportion of kmers required [0.25]
 
 Example:
     vapor.py -fa HA_sequences.fa -fq reads_1.fq
@@ -55,7 +55,6 @@ def blockErr():
     sys.stderr = open(os.devnull, 'w')
 
 def main(args):
-
     # If quiet, don't output anything to stderr 
     if args.quiet:
         blockErr()
@@ -138,7 +137,7 @@ def main(args):
                 print(str(est_pid) + "\t" + str(score)+"\t"+str(slen)+"\t" +str(mean) + "\t"+ str(nreads) + "\t"+seqsh[c])
 
 if __name__ == '__main__':
-    # CLI
+    # Parse arguments
     parser = argparse.ArgumentParser(description="Do some viral classification!")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--return_seqs", action="store_true")
@@ -146,7 +145,7 @@ if __name__ == '__main__':
 
     parser.add_argument("-q", "--quiet", action="store_true", default=False)
     parser.add_argument("--return_best_n", type=int, default=1)
-    parser.add_argument("-m", "--min_kmer_prop", type=float, help="Minimum proportion of matched kmers allowed for queries [default=0.3]", nargs='?', default=0.3)
+    parser.add_argument("-m", "--min_kmer_prop", type=float, help="Minimum proportion of matched kmers allowed for queries [default=0.25]", nargs='?', default=0.25)
     parser.add_argument("-k", type=int, help="Kmer Length [5 > int > 30, default=15]", nargs='?', default=15)
     parser.add_argument("-t", "--threshold", type=float, help="Read kmer filtering threshold [0 > float > 1, default=0.0]", nargs='?', default=0.0)
     parser.add_argument("-c", "--min_kmer_cov", type=float, help="Minimum coverage kmer culling [default=5]", nargs='?', default=5)
@@ -155,7 +154,6 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample [default=all reads]", nargs='?', default=None)
     parser.add_argument("-dbg", "--debug_query", type=str, help="Debug query [default=all reads]", nargs='?', default=None)
     parser.add_argument("--nocache", action="store_true", default=False)
-
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
