@@ -5,19 +5,20 @@ import gzip
 import random
 
 def kmers2str(kmers):
+    """ Takes a set off kmers and extracts their string """
     s = kmers[0]    
     for k in kmers[1:]:
         s += k[-1]
     return s
 
-def get_kmers(strings,k):
+def get_kmers(strings, k):
     """ Takes strings and returns a set of kmers """
     kmers = []
     for string in strings:
         kmers.append([string[i:i+k] for i in range(len(string)-k+1)])
     return kmers
 
-def get_kmers_set(strings,k):
+def get_kmers_set(strings, k):
     """ Takes strings and returns a set of kmers """
     kmers = set()
     for string in strings:
@@ -26,6 +27,7 @@ def get_kmers_set(strings,k):
     return kmers
 
 def rev_comp(read):
+    """ Basic (slow) reverse complement """
     read = read.replace("T", "a")
     read = read.replace("A", "t")
     read = read.replace("C", "g")
@@ -49,27 +51,17 @@ def parse_and_prefilter(fqs, dbkmers, threshold, k):
                 ktotal = int(len(stripped)/k)
                 # Don't allow Ns in read
                 # Don't allow reads < k
-                fwd = stripped
                 rev = rev_comp(stripped)
-                revkcount = 0
-                fwdkcount = 0
-                if "N" not in stripped and len(stripped) >= k:
-                    for i in range(0, len(fwd)-k+1, k):
-                        if fwd[i:i+k] in dbkmers:
-                            fwdkcount += 1
-                    fwdfrac = fwdkcount/ktotal
-                    for i in range(0, len(rev)-k+1, k):
-                        if rev[i:i+k] in dbkmers:
-                            revkcount += 1
-                    revfrac = revkcount/ktotal
-                    if revfrac > fwdfrac:
-                        toadd = rev
-                        frac = revfrac
-                    else:
-                        toadd = fwd
-                        frac = fwdfrac
-                    if frac > threshold:
-                        reads.append(toadd)
+                for tmpseq in [stripped, rev]: 
+                    kcount = 0
+                    if "N" not in tmpseq and len(tmpseq) >= k:
+                        for i in range(0, len(tmpseq)-k+1, k):
+                            if tmpseq[i:i+k] in dbkmers:
+                                kcount += 1
+                                if kcount/ktotal > threshold:
+                                    reads.append(tmpseq)
+                                    # As soon as our threshold is exceeded, break
+                                    break
             c += 1                  
             if c == 4:
                 c = 0
