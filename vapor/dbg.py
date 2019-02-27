@@ -350,7 +350,7 @@ class wDBG():
                 if h == debug_query:
                     seq = seqs[hi]
                     kmers = [seq[i:i+self.k] for i in range(len(seq)-self.k+1)]
-                    sr = self.query(kmers, seqsh[hi], min_kmer_prop, True)
+                    sr = self.query(kmers, min_kmer_prop, True)
                     sr.compare(results[0], self)
                     print(sr.score)
 
