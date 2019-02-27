@@ -15,11 +15,11 @@ USAGE:
 
         -o                  Combined output to files with prefix O, none by default
         -k K                Kmer length [21]
-        -t T                Pre-Filtering Score threshold [0.0]
+        -t T                Pre-Filtering score threshold [0.2]
         -s S                Number of reads to sub-sample
         -c, --min_kmer_cov  Minimum kmer coverage for culling [5]
         -m, --min_kmer_prop
-                            Minimum proportion of kmers required [0.1]
+                            Minimum proportion of kmers required for query [0.25]
         -fa FA              Fasta file
         -fq FQ [FQ ...]     Fastq file/files, can be gzipped
 
@@ -63,4 +63,4 @@ which should yield:
 
     0.9782480893592005  191190.0    1701    112.39858906525573  1000    >cds:ADO12563 A/Chile/3935/2009 2009/07/07 HA H1N1 Human
 
-Where the tab-delimited fields correspond to: percentage of matching bases; total score; query length; mean score; number of reads surviving culling; query description
+Where the tab-delimited fields correspond to: approximate fraction of query bases found in reads; total score; query length; mean score; number of reads surviving culling; query description
