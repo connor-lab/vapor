@@ -103,7 +103,7 @@ class wDBG():
                 mask.append(gapl+i)
         return mask
 
-    def extend_bridge(self, kmer, n, direction=1):
+    def extend_bridge(self, kmer, n, direction, debug=True):
         """
         Walks along the wDBG n positions
         making heuristic locally optimal decisions
@@ -279,8 +279,8 @@ class wDBG():
             for gapl, gapr in gaps:
                 if gapl != 0 and gapr != len(kmers):
                     gapstring = kmers2str(kmers[gapl:gapr])[self.k-1:]
-                    bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl)
-                    bridge_rev, bridge_scores_rev = self.extend_bridge(kmers[gapr], gapr-gapl, -1)
+                    bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl, 1, debug)
+                    bridge_rev, bridge_scores_rev = self.extend_bridge(kmers[gapr], gapr-gapl, -1, debug)
                     gapstring_rev = kmers2str(kmers[gapl:gapr])[:-self.k+1]
                     if sum(bridge_scores_rev) > sum(bridge_scores):
                         mask = self.mask_against_bridge(gapstring_rev, bridge_rev, gapl)
@@ -291,13 +291,13 @@ class wDBG():
 
                 elif gapr != len(kmers) and gapl == 0:
                     gapstring = kmers2str(kmers[gapl:gapr])[self.k-1:]
-                    bridge, bridge_scores = self.extend_bridge(kmers[gapr], gapr-gapl, -1)
+                    bridge, bridge_scores = self.extend_bridge(kmers[gapr], gapr-gapl, -1, debug)
                     mask = self.mask_against_bridge(gapstring, bridge, gapl)
                     filled_weight_array[gapl:gapr] = bridge_scores
 
                 elif gapl > 0 and gapr == len(kmers):
                     gapstring = kmers2str(kmers[gapl:gapr])[self.k-1:]
-                    bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl)
+                    bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl, 1, debug)
                     mask = self.mask_against_bridge(gapstring, bridge, gapl)
                     filled_weight_array[gapl:gapr] = bridge_scores
                 all_masks += mask
