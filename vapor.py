@@ -146,7 +146,7 @@ if __name__ == '__main__':
     parser.add_argument("-q", "--quiet", action="store_true", default=False)
     parser.add_argument("--return_best_n", type=int, default=1)
     parser.add_argument("-m", "--min_kmer_prop", type=float, help="Minimum proportion of matched kmers allowed for queries [default=0.1]", nargs='?', default=0.25)
-    parser.add_argument("-k", type=int, help="Kmer Length [5 > int > 30, default=15]", nargs='?', default=15)
+    parser.add_argument("-k", type=int, help="Kmer Length [5 > int > 30, default=21]", nargs='?', default=21)
     parser.add_argument("-t", "--threshold", type=float, help="Read kmer filtering threshold [0 > float > 1, default=0.0]", nargs='?', default=0.2)
     parser.add_argument("-c", "--min_kmer_cov", type=float, help="Minimum coverage kmer culling [default=5]", nargs='?', default=5)
     parser.add_argument("-fa", type=str, help="Fasta file")
