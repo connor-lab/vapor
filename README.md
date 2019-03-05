@@ -1,6 +1,6 @@
 DESCRIPTION
 
-VAPOR is provided with a large set of reference fastas (> 20,000) for a given segment, a set of reads, and retrieves one that is closest to the sample strain.
+VAPOR is a tool for classification of Influenza samples from raw short read sequence data for downstream bioinformatics analysis. VAPOR is provided with a large set of reference fastas (> 20,000) for a given segment, a set of reads, and attempts to retrieve one that is closest to the sample strain.
 
 USAGE:
 
