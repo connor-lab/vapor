@@ -4,7 +4,7 @@ VAPOR is a tool for classification of Influenza samples from raw short read sequ
 
 INSTALLATION
 
-The VAPOR executable can be installed with pip:
+The VAPOR module executable script can be installed with pip:
 
     sudo pip3 install git+https://github.com/connor-lab/vapor
 
