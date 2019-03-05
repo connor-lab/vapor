@@ -12,6 +12,18 @@ Alternatively, clone the repo, and add to your PATH:
 
     git clone https://github.com/connor-lab/vapor
 
+TESTING
+
+To test, run:
+
+    vapor.py -fq tests/test_reads.fq -fa tests/HA_sample.fa
+
+which should yield:
+
+    0.9782480893592005  191190.0    1701    112.39858906525573  1000    >cds:ADO12563 A/Chile/3935/2009 2009/07/07 HA H1N1 Human
+
+Where the tab-delimited fields correspond to: approximate fraction of query bases found in reads; total score; query length; mean score; number of reads surviving culling; query description
+
 USAGE:
 
     usage: vapor.py [-h] [-q] [-k K] [-s S] [-fa FA]
@@ -63,14 +75,4 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-TESTING
 
-To test, run:
-
-    vapor.py -fq tests/test_reads.fq -fa tests/HA_sample.fa
-
-which should yield:
-
-    0.9782480893592005  191190.0    1701    112.39858906525573  1000    >cds:ADO12563 A/Chile/3935/2009 2009/07/07 HA H1N1 Human
-
-Where the tab-delimited fields correspond to: approximate fraction of query bases found in reads; total score; query length; mean score; number of reads surviving culling; query description
