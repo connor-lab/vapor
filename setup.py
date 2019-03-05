@@ -4,7 +4,6 @@ from distutils.core import setup
 
 setup(name='vapor',
       version='1.0.0',
-      packages=['vapor']
-      modules=['pyvapor'],
+      packages=['pyvapor'],
       scripts=['vapor.py']
       )
