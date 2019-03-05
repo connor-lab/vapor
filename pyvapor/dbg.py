@@ -342,7 +342,7 @@ class wDBG():
             scores.append(sr)
 
         # Sort the results
-        results = sorted(scores, key = lambda x: (x.score, x.est_pid), reverse=True)
+        results = sorted(scores, key = lambda x: x.score * x.est_pid, reverse=True)
 
         if debug_query != None:
             # For debugging
