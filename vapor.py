@@ -48,7 +48,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import sys
 import argparse
 import os
-import vapor as vp
+import pyvapor as vp
 
 def blockErr():
     """ Block std err for quiet mode """

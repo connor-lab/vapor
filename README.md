@@ -2,6 +2,16 @@ DESCRIPTION
 
 VAPOR is a tool for classification of Influenza samples from raw short read sequence data for downstream bioinformatics analysis. VAPOR is provided with a large set of reference fastas (> 20,000) for a given segment, a set of reads, and attempts to retrieve one that is closest to the sample strain.
 
+INSTALLATION
+
+The VAPOR executable can be installed with pip:
+
+    sudo pip3 install git+https://github.com/connor-lab/vapor
+
+Alternatively, clone the repo, and add to your PATH:
+
+    git clone https://github.com/connor-lab/vapor
+
 USAGE:
 
     usage: vapor.py [-h] [-q] [-k K] [-s S] [-fa FA]
@@ -25,7 +35,7 @@ USAGE:
 
 Example:
 
-    vapor.py -fa HA_sequences.fa -fq reads_1.fq.gz
+    vapor.py -fa HA_sequences.fa -fq reads_1.fq.gz reads_2.fq.gz
 
 Author: Joel Southgate
 
@@ -57,7 +67,7 @@ TESTING
 
 To test, run:
 
-    vapor.py -fq tests/11.fq -fa tests/HA_sample.fa
+    vapor.py -fq tests/test_reads.fq -fa tests/HA_sample.fa
 
 which should yield:
 

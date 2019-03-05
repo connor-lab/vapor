@@ -3,7 +3,7 @@ import sys
 import numpy as np
 np.set_printoptions(threshold=np.nan)
 from collections import deque
-from vapor.vaporfunc import *
+from pyvapor.vaporfunc import *
 
 class SearchResult():
     """
