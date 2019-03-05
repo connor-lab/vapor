@@ -73,7 +73,7 @@ def main(args):
 
     # Parse and pre-filter reads
     sys.stderr.write("Filtering reads\n")
-    reads, nrawreads = vp.parse_and_prefilter(args.fq, dbkmersset, args.threshold, args.k, args.threads)
+    reads, nrawreads = vp.parse_and_prefilter(args.fq, dbkmersset, args.threshold, args.k)
     nreads = len(reads)
     sys.stderr.write("%d of %d reads survived\n" % (nreads,nrawreads))
 
@@ -105,7 +105,7 @@ def main(args):
 
     # Ask the wdbg to classify
     sys.stderr.write("Classifying\n")
-    path_results = wdbg.classify(seqs, seqsh, args.min_kmer_prop, args.debug_query, args.threads)
+    path_results = wdbg.classify(seqs, seqsh, args.min_kmer_prop, args.debug_query)
     results = path_results[:args.return_best_n]
     results = [(sr.index, sr.est_pid, sr.score) for sr in results if sr.score != -1]
     if len(results) == 0:
@@ -157,7 +157,6 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample [default=all reads]", nargs='?', default=None)
     parser.add_argument("-dbg", "--debug_query", type=str, help="Debug query [default=all reads]", nargs='?', default=None)
     parser.add_argument("--nocache", action="store_true", default=False)
-    parser.add_argument("--threads", type=int, default=1)
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
