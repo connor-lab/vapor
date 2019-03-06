@@ -246,6 +246,82 @@ class wDBG():
                     gaps[gapi][1] = ri
                     break
 
+    def seed(self, kmers):
+        """
+        Takes a query sequence of kmers,
+        seeds it in the wDBG
+        return SearchResult object
+        """
+        sr = SearchResult()
+        # First obtain the raw weight array for kmers of a sequence
+        raw_weight_array = self.get_raw_weight_array(kmers)
+        kmer_cov = np.count_nonzero(raw_weight_array)/len(raw_weight_array)
+        sr.raw_weight_array = raw_weight_array
+        sr.kmer_cov = kmer_cov
+        return sr
+
+    def complete_query(self, sr, kmers, debug=False):
+        kmer_cov = sr.kmer_cov
+        raw_weight_array = sr.raw_weight_array
+        # Get the gaps
+        gaps = self.get_weight_array_gaps(raw_weight_array)
+        # Get the suboptimal branches
+        sub = self.get_suboptimal_branches(kmers)
+        self.expand_gaps(gaps, sub, len(kmers))
+        if debug == True:
+            # Copy the raw weight as a record
+            sr.suboptimal_branches = sub
+            sr.gap_positions = gaps
+            filled_weight_array = [r for r in raw_weight_array]
+        else:
+            # Don't copy, not debugging
+            filled_weight_array = raw_weight_array
+        all_masks = []
+        for gapl, gapr in gaps:
+            if gapl != 0 and gapr != len(kmers):
+                gapstring = kmers2str(kmers[gapl:gapr])[self.k-1:]
+                bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl, 1, debug)
+                bridge_rev, bridge_scores_rev = self.extend_bridge(kmers[gapr], gapr-gapl, -1, debug)
+                gapstring_rev = kmers2str(kmers[gapl:gapr])[:-self.k+1]
+                if sum(bridge_scores_rev) > sum(bridge_scores):
+                    mask = self.mask_against_bridge(gapstring_rev, bridge_rev, gapl)
+                    filled_weight_array[gapl:gapr] = bridge_scores_rev
+                else:
+                    mask = self.mask_against_bridge(gapstring, bridge, gapl)
+                    filled_weight_array[gapl:gapr] = bridge_scores
+
+            elif gapr != len(kmers) and gapl == 0:
+                gapstring = kmers2str(kmers[gapl:gapr])[self.k-1:]
+                bridge, bridge_scores = self.extend_bridge(kmers[gapr], gapr-gapl, -1, debug)
+                mask = self.mask_against_bridge(gapstring, bridge, gapl)
+                filled_weight_array[gapl:gapr] = bridge_scores
+
+            elif gapl > 0 and gapr == len(kmers):
+                gapstring = kmers2str(kmers[gapl:gapr])[self.k-1:]
+                bridge, bridge_scores = self.extend_bridge(kmers[gapl-1], gapr-gapl, 1, debug)
+                mask = self.mask_against_bridge(gapstring, bridge, gapl)
+                filled_weight_array[gapl:gapr] = bridge_scores
+            all_masks += mask
+            if debug == True:
+                for i in range(gapl, gapr):
+                    sr.bridges[i] = bridge[i-gapl]
+        if debug == True:
+            sr.filled_array = filled_weight_array
+        # Deque score
+        filled_weight_array = np.concatenate((filled_weight_array, np.zeros(self.k-1)))
+        filled_deque_array = self.deque_score_bases(filled_weight_array)
+        for maski in all_masks:
+            filled_deque_array[maski] = 0
+        if debug == True:
+            sr.filled_deque_array = filled_deque_array
+        # Sum, also get estimated pid
+        nonzeros = [i for i in filled_deque_array if i > 0]
+        est_pid = len(nonzeros)/len(filled_deque_array)
+        sr.est_pid = est_pid
+        score = sum(nonzeros)
+        sr.score = score
+        return sr
+
     def query(self, kmers, min_kmer_prop, debug=False):
         """ 
         Takes a query set of kmers,
@@ -257,6 +333,7 @@ class wDBG():
         # First obtain the raw weight array for kmers of a sequence
         raw_weight_array = self.get_raw_weight_array(kmers)
         kmer_cov = np.count_nonzero(raw_weight_array)/len(raw_weight_array)
+        sr.kmer_cov = kmer_cov
         # Next trim the raw weight array
         if debug==True:
             sr.raw_array = raw_weight_array
@@ -327,18 +404,26 @@ class wDBG():
         sr.score = score
         return sr
 
-    def classify(self, seqs, seqsh, min_kmer_prop, debug_query=None):
+    def classify(self, seqs, seqsh, min_kmer_prop, top_seed_frac, debug_query=None):
         """
         Queries a set of sequences seqs, with headers seqsh,
         parameter min_kmer_prop
         and if debugging, a debug query
         """
-        scores = []
+        seeds = []
         for si, seq in enumerate(seqs):
             kmers = [seq[i:i+self.k] for i in range(len(seq)-self.k+1)]
-            sr = self.query(kmers, min_kmer_prop, (debug_query != None))
-            sr.header = seqsh[si]
-            sr.index = si
+            seed = self.seed(kmers)
+            seed.index = si
+            if seed.kmer_cov > min_kmer_prop:
+                seed.kmers = kmers
+                seeds.append(seed)
+
+        topseeds = sorted(seeds, key=lambda x:x.kmer_cov, reverse=True)[:int(top_seed_frac*len(seqs))]
+
+        scores = []
+        for seed in topseeds:
+            sr = self.complete_query(seed, seed.kmers, debug_query)
             scores.append(sr)
 
         # Sort the results

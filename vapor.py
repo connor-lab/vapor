@@ -20,7 +20,9 @@ optional arguments:
     -t, --threshold     Read pre-filtering Score threshold [0.2]
     -s, --subsample     Number of reads to subsample, no subsampling by default
     -m, --min_kmer_prop
-                        Minimum proportion of kmers required [0.15]
+                        Minimum proportion of kmers required [0.1]
+    -f, --top_seed_frac
+                        Fraction of best seeds to extend [0.2]
 
 Example:
     vapor.py -fa HA_sequences.fa -fq reads_1.fq
@@ -105,7 +107,7 @@ def main(args):
 
     # Ask the wdbg to classify
     sys.stderr.write("Classifying\n")
-    path_results = wdbg.classify(seqs, seqsh, args.min_kmer_prop, args.debug_query)
+    path_results = wdbg.classify(seqs, seqsh, args.min_kmer_prop, args.top_seed_frac, args.debug_query)
     results = path_results[:args.return_best_n]
     results = [(sr.index, sr.est_pid, sr.score) for sr in results if sr.score != -1]
     if len(results) == 0:
@@ -148,7 +150,7 @@ if __name__ == '__main__':
 
     parser.add_argument("-q", "--quiet", action="store_true", default=False)
     parser.add_argument("--return_best_n", type=int, default=1)
-    parser.add_argument("-m", "--min_kmer_prop", type=float, help="Minimum proportion of matched kmers allowed for queries [default=0.15]", nargs='?', default=0.15)
+    parser.add_argument("-m", "--min_kmer_prop", type=float, help="Minimum proportion of matched kmers allowed for queries [default=0.1]", nargs='?', default=0.1)
     parser.add_argument("-k", type=int, help="Kmer Length [5 > int > 30, default=21]", nargs='?', default=21)
     parser.add_argument("-t", "--threshold", type=float, help="Read kmer filtering threshold [0 > float > 1, default=0.0]", nargs='?', default=0.2)
     parser.add_argument("-c", "--min_kmer_cov", type=float, help="Minimum coverage kmer culling [default=5]", nargs='?', default=5)
@@ -156,6 +158,7 @@ if __name__ == '__main__':
     parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
     parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample [default=all reads]", nargs='?', default=None)
     parser.add_argument("-dbg", "--debug_query", type=str, help="Debug query [default=all reads]", nargs='?', default=None)
+    parser.add_argument("-f", "--top_seed_frac", type=float, help="Fraction of best seeds to extend [default=0.2]", default=0.2)
     parser.add_argument("--nocache", action="store_true", default=False)
 
     if len(sys.argv)==1:
