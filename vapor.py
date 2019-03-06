@@ -158,7 +158,7 @@ if __name__ == '__main__':
     parser.add_argument("-fq", nargs='+', type=str, help="Fastq file/files")
     parser.add_argument("-s", "--subsample", type=int, help="Number of reads to subsample [default=all reads]", nargs='?', default=None)
     parser.add_argument("-dbg", "--debug_query", type=str, help="Debug query [default=all reads]", nargs='?', default=None)
-    parser.add_argument("-f", "--top_seed_frac", type=float, help="Fraction of best seeds to extend [default=0.2]", default=0.2)
+    parser.add_argument("-f", "--top_seed_frac", type=float, help="Fraction of best seeds to extend [default=0.2]", nargs='?', default=0.2)
     parser.add_argument("--nocache", action="store_true", default=False)
 
     if len(sys.argv)==1:
