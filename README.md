@@ -41,7 +41,7 @@ USAGE:
         -s S                Number of reads to sub-sample
         -c, --min_kmer_cov  Minimum kmer coverage for culling [5]
         -m, --min_kmer_prop
-                            Minimum proportion of kmers required for query [0.25]
+                            Minimum proportion of kmers required for query [0.15]
         -fa FA              Fasta file
         -fq FQ [FQ ...]     Fastq file/files, can be gzipped
 
