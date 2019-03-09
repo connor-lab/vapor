@@ -1,6 +1,11 @@
 DESCRIPTION
 
-VAPOR is a tool for classification of Influenza samples from raw short read sequence data for downstream bioinformatics analysis. VAPOR is provided with a large set of reference fastas (> 20,000) for a given segment, a set of reads, and attempts to retrieve one that is closest to the sample strain.
+VAPOR is a tool for classification of Influenza samples from raw short read sequence data for downstream bioinformatics analysis. VAPOR is provided with a fasta file of full-length sequences (> 20,000) for a given segment, a set of reads, and attempts to retrieve a reference that is closest to the sample strain.
+
+REQUIREMENTS
+
+Python 3.x
+NumPy >= 1.51.x
 
 INSTALLATION
 
@@ -14,7 +19,7 @@ Alternatively, clone the repo, and add to your PATH:
 
 TESTING
 
-To test, run:
+A test dataset is provided in the repository/tests. To test, clone the repo as above, and run:
 
     vapor.py -fq tests/test_reads.fq -fa tests/HA_sample.fa
 
@@ -54,11 +59,6 @@ Example:
 Author: Joel Southgate
 
 Email (for inquiries): southgateJA@cardiff.ac.uk
-
-REQUIREMENTS
-
-Python 3.x
-NumPy >= 1.51.x
 
 COPYRIGHT
 
