@@ -78,7 +78,9 @@ def parse_fasta_uniq(fasta, filter_Ns=True):
     with open(fasta) as f:
         for li, line in enumerate(f):
             l = line.strip()
-            if l[0] == ">":
+            if len(l) == 0:
+                continue
+            elif l[0] == ">":
                 if tmps not in sseen and li > 0:
                     if ((filter_Ns == True) and "N" not in tmps) or filter_Ns == False:
                         hs.append(tmph)
