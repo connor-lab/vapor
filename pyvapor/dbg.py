@@ -1,7 +1,7 @@
 """ DBG classes and related objects """
 import sys
 import numpy as np
-np.set_printoptions(threshold=np.nan)
+np.set_printoptions(threshold=sys.maxsize)
 from collections import deque
 from pyvapor.vaporfunc import *
 
