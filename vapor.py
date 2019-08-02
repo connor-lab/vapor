@@ -23,6 +23,7 @@ optional arguments:
                         Minimum proportion of kmers required [0.1]
     -f, --top_seed_frac
                         Fraction of best seeds to extend [0.2]
+    -v, --version       Show version
 
 Example:
     vapor.py -fa HA_sequences.fa -fq reads_1.fq
@@ -160,12 +161,20 @@ if __name__ == '__main__':
     parser.add_argument("-dbg", "--debug_query", type=str, help="Debug query [default=all reads]", nargs='?', default=None)
     parser.add_argument("-f", "--top_seed_frac", type=float, help="Fraction of best seeds to extend [default=0.2]", nargs='?', default=0.2)
     parser.add_argument("--nocache", action="store_true", default=False)
+    parser.add_argument("-v", "--version", action="store_true", default=False)
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
         sys.exit(1)
 
     args = parser.parse_args()
+
+    if args.version == True:
+        with open("setup.py") as f:
+            for line in f:
+                if line.strip().startswith("version="):
+                    print(line.strip().rstrip(","))
+                    sys.exit(1)
 
     # Set some thresholds for user input
     max_kmer = 30
