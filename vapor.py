@@ -93,16 +93,16 @@ def main(args):
     # Build the wDBG from reads
     sys.stderr.write("Building wDBG\n")
     wdbg = vp.wDBG(reads, args.k)
-    sys.stderr.write("Got %d wdbg kmers\n" % len(wdbg.edges))
+    sys.stderr.write("Got %d wdbg kmers\n" % len(wdbg.nodes))
     if args.nocache == True:
             wdbg.caching = False
     
     # Cull low coverage
     sys.stderr.write("Culling kmers with coverage under %d \n" % args.min_kmer_cov)
     wdbg.cull_low(args.min_kmer_cov)
-    sys.stderr.write("%d kmers remaining\n" % len(wdbg.edges))
+    sys.stderr.write("%d kmers remaining\n" % len(wdbg.nodes))
 
-    if len(wdbg.edges) == 0:
+    if len(wdbg.nodes) == 0:
         sys.stderr.write("Zero kmers remaining after culling! Try a lower coverage cutoff -c. \n")
         sys.exit(1)
 
