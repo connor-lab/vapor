@@ -56,7 +56,7 @@ class SearchResult():
                 tag2 += sr.bridges[i]
             if i in self.bridges:
                 tag1 += self.bridges[i]
-            print(i, self.kmers[i], self.kmers[i] in wdbg.edges, self.raw_array[i], self.filled_array[i], self.filled_deque_array[i], tag1, "\t", sr.kmers[i], sr.kmers[i] in wdbg.edges, sr.raw_array[i], sr.filled_array[i], sr.filled_deque_array[i], tag2)
+            print(i, self.kmers[i], self.kmers[i] in wdbg.nodes, self.raw_array[i], self.filled_array[i], self.filled_deque_array[i], tag1, "\t", sr.kmers[i], sr.kmers[i] in wdbg.nodes, sr.raw_array[i], sr.filled_array[i], sr.filled_deque_array[i], tag2)
         self_cycles = [kmer for kmer in self.kmers if self.kmers.count(kmer) > 1]
         print("self cycles:", len(self_cycles))
         sr_cycles = [kmer for kmer in self.kmers if sr.kmers.count(kmer) > 1]
@@ -66,8 +66,8 @@ class wDBG():
     """ Basic DBG with associated edge weights """
     def __init__(self, strings, k):
         """ Initialized with strings, k, and reference kmers """
-        # Only explicitly store edges
-        self.edges = {}
+        # Only explicitly store nodes
+        self.nodes = {}
         self.k = k
         self._build(strings)
         self.caching = True
@@ -78,19 +78,19 @@ class wDBG():
         for si, string in enumerate(strings):
             kmers = [string[i:i+self.k] for i in range(len(string)-self.k+1)]
             for kmer in kmers:
-                if kmer in self.edges:
-                    self.edges[kmer] += 1
+                if kmer in self.nodes:
+                    self.nodes[kmer] += 1
                 else:
-                    self.edges[kmer] = 1
+                    self.nodes[kmer] = 1
 
     def cull_low(self, min_cov=5):
         """
         Culls kmers with a coverage less than min_cov
         """
-        keyvals = [(k, v) for k, v in self.edges.items()]
+        keyvals = [(k, v) for k, v in self.nodes.items()]
         for key, val in keyvals:
             if val <= min_cov:
-                del self.edges[key]            
+                del self.nodes[key]            
 
     def mask_against_bridge(self, query, bridge, gapl):
         """
@@ -121,14 +121,14 @@ class wDBG():
             si = -1
         while len(string) < n+self.k:
             if direction == 1:
-                poss_edges = [string[-self.k+1:] + b for b in "ATCG"]
+                poss_nodes = [string[-self.k+1:] + b for b in "ATCG"]
             elif direction == -1:
-                poss_edges = [b + string[:self.k-1] for b in "ATCG"]
+                poss_nodes = [b + string[:self.k-1] for b in "ATCG"]
             max_score = 0
             max_base = None
-            for pe in poss_edges:
-                if pe in self.edges:
-                    tmpscore = self.edges[pe]
+            for pe in poss_nodes:
+                if pe in self.nodes:
+                    tmpscore = self.nodes[pe]
                     if tmpscore > max_score:
                         max_score = tmpscore
                         if direction == 1:
@@ -163,8 +163,8 @@ class wDBG():
         """
         array = np.zeros(len(kmers))
         for ki, kmer in enumerate(kmers):
-            if kmer in self.edges:
-                array[ki] = self.edges[kmer]
+            if kmer in self.nodes:
+                array[ki] = self.nodes[kmer]
         return array
     
     def get_weight_array_gaps(self, array):
@@ -221,10 +221,10 @@ class wDBG():
         suboptimal_branches = set()
         bases = list("ATCG")
         for ki, kmer in enumerate(kmers):
-            if kmer in self.edges:
-                score = self.edges[kmer]
+            if kmer in self.nodes:
+                score = self.nodes[kmer]
                 alts = [kmer[:-1] + b for b in bases]
-                altscores = [self.edges[amer] for amer in alts if amer in self.edges]
+                altscores = [self.nodes[amer] for amer in alts if amer in self.nodes]
                 if altscores != []:
                     if score < max(altscores):
                         suboptimal_branches.add(ki)
