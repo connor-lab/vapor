@@ -51,6 +51,7 @@ USAGE:
         -fq FQ [FQ ...]     Fastq file/files, can be gzipped
         -f, --top_seed_frac
                             Fraction of best seeds to extend [0.2]
+        -v, --version       Show version
 
 Example:
 
