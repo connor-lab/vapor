@@ -419,7 +419,7 @@ class wDBG():
                 seed.kmers = kmers
                 seeds.append(seed)
 
-        topseeds = sorted(seeds, key=lambda x:x.kmer_cov, reverse=True)[:int(top_seed_frac*len(seqs))]
+        topseeds = sorted(seeds, key=lambda x:x.kmer_cov, reverse=True)[:int(np.ceil(top_seed_frac*len(seqs)))]
 
         scores = []
         for seed in topseeds:
