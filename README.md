@@ -5,7 +5,7 @@ VAPOR is a tool for classification of Influenza samples from raw short read sequ
 REQUIREMENTS
 
 Python 3.x
-NumPy >= 1.51.x
+NumPy >= 1.5.1
 
 INSTALLATION
 
