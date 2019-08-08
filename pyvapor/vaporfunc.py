@@ -77,7 +77,7 @@ def parse_fasta_uniq(fasta, filter_Ns=True):
     sseen = set()
     with open(fasta) as f:
         for li, line in enumerate(f):
-            l = line.strip()
+            l = line.strip().upper()
             if len(l) == 0:
                 continue
             elif l[0] == ">":
