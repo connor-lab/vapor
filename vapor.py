@@ -108,7 +108,7 @@ def main(args):
 
     # Ask the wdbg to classify
     sys.stderr.write("Classifying\n")
-    path_results = wdbg.classify(seqs, seqsh, args.min_kmer_prop, args.top_seed_frac, args.debug_query)
+    path_results = wdbg.classify(seqs, seqsh, args.min_kmer_prop, args.top_seed_frac, args.debug_query, args.low_mem)
     results = path_results[:args.return_best_n]
     results = [(sr.index, sr.est_pid, sr.score) for sr in results if sr.score != -1]
     if len(results) == 0:
@@ -162,6 +162,7 @@ if __name__ == '__main__':
     parser.add_argument("-f", "--top_seed_frac", type=float, help="Fraction of best seeds to extend [default=0.2]", nargs='?', default=0.2)
     parser.add_argument("--nocache", action="store_true", default=False)
     parser.add_argument("-v", "--version", action="store_true", default=False)
+    parser.add_argument("--low_mem", action="store_true", default=False)
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)

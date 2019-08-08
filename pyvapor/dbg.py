@@ -260,7 +260,9 @@ class wDBG():
         sr.kmer_cov = kmer_cov
         return sr
 
-    def complete_query(self, sr, kmers, debug=False):
+    def complete_query(self, sr, kmers=None, string=None, debug=False):
+        if kmers == None:
+            kmers = get_kmers([string])
         kmer_cov = sr.kmer_cov
         raw_weight_array = sr.raw_weight_array
         # Get the gaps
@@ -323,6 +325,7 @@ class wDBG():
         return sr
 
     def query(self, kmers, min_kmer_prop, debug=False):
+        # DEPRECIATED
         """ 
         Takes a query set of kmers,
         param min_kmer_prop and debug flag 
@@ -404,7 +407,7 @@ class wDBG():
         sr.score = score
         return sr
 
-    def classify(self, seqs, seqsh, min_kmer_prop, top_seed_frac, debug_query=None):
+    def classify(self, seqs, seqsh, min_kmer_prop, top_seed_frac, debug_query=None, low_mem=False):
         """
         Queries a set of sequences seqs, with headers seqsh,
         parameter min_kmer_prop
@@ -416,14 +419,18 @@ class wDBG():
             seed = self.seed(kmers)
             seed.index = si
             if seed.kmer_cov > min_kmer_prop:
-                seed.kmers = kmers
+                if low_mem == False:
+                    seed.kmers = kmers
                 seeds.append(seed)
 
         topseeds = sorted(seeds, key=lambda x:x.kmer_cov, reverse=True)[:int(np.ceil(top_seed_frac*len(seqs)))]
 
         scores = []
         for seed in topseeds:
-            sr = self.complete_query(seed, seed.kmers, debug_query)
+            if low_mem == False:
+                sr = self.complete_query(seed, seed.kmers, debug_query)
+            else:
+                sr = self.complete_query(seed, None, seqs[seed.index], debug_query)
             scores.append(sr)
 
         # Sort the results
