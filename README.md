@@ -25,7 +25,7 @@ A test dataset is provided in the repository/tests. To test, clone the repo as a
 
 which should yield:
 
-    0.9782480893592005  191190.0    1701    112.39858906525573  1000    >cds:ADO12563 A/Chile/3935/2009 2009/07/07 HA H1N1 Human
+    0.9782480893592005  186719.0    1701    109.77013521457965  1000    >cds:ADO12563 A/Chile/3935/2009 2009/07/07 HA H1N1 Human
 
 Where the tab-delimited fields correspond to: approximate fraction of query bases found in reads; total score; query length; mean score; number of reads surviving culling; query description
 
@@ -51,11 +51,32 @@ USAGE:
         -fq FQ [FQ ...]     Fastq file/files, can be gzipped
         -f, --top_seed_frac
                             Fraction of best seeds to extend [0.2]
+        --low_mem           Does not store reference kmer arrays, produces same result, marginally slower but less memory [False]
         -v, --version       Show version
 
 Example:
 
     vapor.py -fa HA_sequences.fa -fq reads_1.fq.gz reads_2.fq.gz
+
+PARAMETER OPTIMIZATION FOR OTHER VIRUSES:
+
+VAPOR can in principle be used for other viruses (although performance has not yet been comprehensively benchmarked as with influenza, future versions will benchmark generalizability). For example, for ~79,448 HIV env sequences downloaded from https://www.hiv.lanl.gov/components/sequence/HIV/search/search.html, and public read sets with the ENA run accession SRR8389950, derived from HIV BF520.W14M (see https://www.ebi.ac.uk/ena/data/view/SRR8389950). A BF520 reference can be retrieved using the following parameters:
+
+    vapor.py -c 100 --subsample 1000000 --low_mem -m 0.2 -f 0.1 -fq SRR8389950_1.fastq.gz SRR8389950_2.fastq.gz -fa env_db.fasta
+
+Which returns:
+
+0.8030480656506448  235867226.0 2559    92171.63970300899   11899117    >A1.KE.1994.BF520.W14M.C2.KX168094
+
+When used as a reference this reference has a raw error rate of 0.2%.
+
+In this case we have customized the parameters:
+    - Since the reference space is a bit larger than for example, influenza A HA sequences, we use --low mem to reduce memory (this does not affect the result, but may increase run-time slightly)
+    - We also also assume, with the larger database, that there are sufficient close sequences to our sample, and use -m 0.2, requiring at least 20% exact matches to improve run-time (this not affect the result as long as there are enough close references to the sample). If the reference space was very sparse, or our sample very novel, we may need to use -m 0.0
+    - Again, due to the larger database, we decrease -f to 0.1 in order to extend fewer sequences with high-scoring exact matches.
+    - Because the sample has over 12,000,000 reads, we improve run-time by subsampling 1,000,000 reads (--subsample 1000000). If depth is extremely skewed, sub-sampling may result in zero coverage in some sequence regions. In general, sub-sampling may decrease performance.
+    - Since depth is expected to be very high, we can also cull any k-mers with coverage less than 100 (assuming that they are, for example, errors or minor quasispecies variants). In some cases, this can affect perfomance (either increase or decrease), but will reduce memory and improve run-time as well. As with sub-sampling, this may also cull legitimate k-mers, and reduce performance, especially where depth is low.
+    - If we had reason to believe our virus includes many k-mers that are also present in non-viral background sequences, we could increase -t, or -k, although the latter may have more implications for performance in general (sensitivity/specificity).
 
 Author: Joel Southgate
 

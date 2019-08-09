@@ -262,7 +262,7 @@ class wDBG():
 
     def complete_query(self, sr, kmers=None, string=None, debug=False):
         if kmers == None:
-            kmers = get_kmers([string])
+            kmers = get_kmers([string], self.k)[0]
         kmer_cov = sr.kmer_cov
         raw_weight_array = sr.raw_weight_array
         # Get the gaps

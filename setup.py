@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='vapor',
-      version='1.0.2',
+      version='1.0.3',
       packages=['pyvapor'],
       scripts=['vapor.py']
       )

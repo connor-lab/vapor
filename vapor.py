@@ -23,6 +23,7 @@ optional arguments:
                         Minimum proportion of kmers required [0.1]
     -f, --top_seed_frac
                         Fraction of best seeds to extend [0.2]
+    --low_mem           Does not store reference kmer arrays, produces same result, marginally slower but less memory [False]
     -v, --version       Show version
 
 Example:
