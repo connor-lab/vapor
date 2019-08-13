@@ -72,12 +72,21 @@ Mapping to this reference should result in a mismatch rate of < 2e-03%.
 
 In this case we have customized the parameters:  
 
-    - Since the reference space is a bit larger than for example, influenza A HA sequences, we use --low mem to reduce memory (this does not affect the result, but may increase run-time slightly)  
-    - We also also assume, with the larger database, that there are sufficient close sequences to our sample, and use -m 0.2, requiring at least 20% exact matches to improve run-time (this does not affect the result as long as there are enough close references to the sample). If the reference space was very sparse, or our sample very novel, we may need to use -m 0.0  
-    - Again, due to the larger database, we decrease -f to 0.1 in order to extend fewer sequences with high-scoring exact matches.  
-    - Because the sample has over 12,000,000 reads, we improve run-time by subsampling 1,000,000 reads (--subsample 1000000). If depth is extremely skewed, sub-sampling may result in zero coverage in some sequence regions. In general, sub-sampling may decrease performance, and should be avoided where possible.
-    - Since depth is expected to be very high, we can also cull any k-mers with coverage less than 100 (assuming that they are, for example, errors or minor quasispecies variants). In some cases, this can affect perfomance (either increase or decrease), but will reduce memory and improve run-time as well. As with sub-sampling, this may also cull legitimate k-mers, and reduce performance, especially where depth is low.  
-    - If we had reason to believe our virus includes many k-mers that are also present in non-viral background sequences, we could increase -t, or -k, although the latter may have more implications for performance in general (sensitivity/specificity).
+- Since the reference space is a bit larger than for example, influenza A HA sequences, we use --low mem to reduce memory (this does not affect the result, but may increase run-time slightly)  
+
+- We also also assume, with the larger database, that there are sufficient close sequences to our sample, and use -m 0.2, requiring at least 20% exact matches to improve run-time (this does not affect the result as long as there are enough close references to the sample). If the reference space was very sparse, or our sample very novel, we may need to use -m 0.0  
+
+- Again, due to the larger database, we decrease -f to 0.1 in order to extend fewer sequences with high-scoring exact matches.  
+
+- Because the sample has over 12,000,000 reads, we improve run-time by subsampling 1,000,000 reads (--subsample 1000000). If depth is extremely skewed, sub-sampling may result in zero coverage in some sequence regions. In general, sub-sampling may decrease performance, and should be avoided where possible.
+
+- Since depth is expected to be very high, we can also cull any k-mers with coverage less than 100 (assuming that they are, for example, errors or minor quasispecies variants). In some cases, this can affect perfomance (either increase or decrease), but will reduce memory and improve run-time as well. As with sub-sampling, this may also cull legitimate k-mers, and reduce performance, especially where depth is low.  
+
+- If we had reason to believe our virus includes many k-mers that are also present in non-viral background sequences, we could increase -t, or -k, although the latter may have more implications for performance in general (sensitivity/specificity).
+
+RECOMMENDED CPU AND MEMORY
+
+For .fastq files with up to 10,000,000 reads, and influenza A segment sequences .fasta files with approximately 47,000 references, VAPOR (single thread) requires < 4 Gb of memory and can generally be run within 4 minutes on an Intel(R) Core(TM) i7-6600U CPU @ 2.60GHz. For future datasets, memory requirements may be larger, and parameters may need to be optimized (see the above discussion of HIV). As such, we recommend 8 Gb of RAM for general usage, and any modern CPU.
 
 Author: Joel Southgate
 
