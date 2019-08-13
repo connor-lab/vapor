@@ -172,11 +172,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.version == True:
-        with open("setup.py") as f:
-            for line in f:
-                if line.strip().startswith("version="):
-                    print(line.strip().rstrip(","))
-                    sys.exit(1)
+        import pkg_resources
+        version = pkg_resources.require("vapor")[0].version
+        print(version)
+        sys.exit(1)
 
     # Set some thresholds for user input
     max_kmer = 30
