@@ -86,7 +86,7 @@ In this case we have customized the parameters:
 
 RECOMMENDED CPU AND MEMORY
 
-For .fastq files with up to 10,000,000 reads, and influenza A segment sequences .fasta files with approximately 47,000 references, VAPOR (single thread) requires < 4 Gb of memory and can generally be run within 4 minutes on an Intel(R) Core(TM) i7-6600U CPU @ 2.60GHz. For future datasets, memory requirements may be larger, and parameters may need to be optimized (see the above discussion of HIV). As such, we recommend 8 Gb of RAM for general usage, and any modern CPU.
+For .fastq files with up to 10,000,000 reads, and influenza A segment .fasta files with approximately 47,000 references, VAPOR (single thread) requires < 4 Gb of memory and can generally be run within 4 minutes on an Intel(R) Core(TM) i7-6600U CPU @ 2.60GHz. For future datasets, memory requirements may be larger, and parameters may need to be optimized (see the above discussion of HIV). As such, we recommend 8 Gb of RAM for general usage, and any modern CPU.
 
 Author: Joel Southgate
 
