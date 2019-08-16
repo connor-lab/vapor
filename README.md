@@ -72,9 +72,9 @@ Mapping to this reference should result in a mismatch rate of < 2e-03%.
 
 In this case we have customized the parameters:  
 
-- Since the reference space is a bit larger than for example, influenza A HA sequences, we use --low mem to reduce memory (this does not affect the result, but may increase run-time slightly)  
+- Since the reference space is larger than for example, influenza A HA sequences, we use --low mem to reduce memory (this does not affect the result, but may increase run-time slightly)  
 
-- We also also assume, with the larger database, that there are sufficient close sequences to our sample, and use -m 0.2, requiring at least 20% exact matches to improve run-time (this does not affect the result as long as there are enough close references to the sample). If the reference space was very sparse, or our sample very novel, we may need to use -m 0.0  
+- We also assume, with the larger database, that there are sufficient close sequences to our sample, and use -m 0.2, requiring at least 20% exact matches to improve run-time (this does not affect the result as long as there are enough close references to the sample). If the reference space was very sparse, or our sample very novel, we may need to use -m 0.0  
 
 - Again, due to the larger database, we decrease -f to 0.1 in order to extend fewer sequences with high-scoring exact matches.  
 
