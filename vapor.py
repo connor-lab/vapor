@@ -102,6 +102,8 @@ def main(args):
     sys.stderr.write("Culling kmers with coverage under %d \n" % args.min_kmer_cov)
     wdbg.cull_low(args.min_kmer_cov)
     sys.stderr.write("%d kmers remaining\n" % len(wdbg.nodes))
+    total_weight = wdbg.get_total_weight()
+    sys.stderr.write("%d total weight\n" % total_weight)
 
     if len(wdbg.nodes) == 0:
         sys.stderr.write("Zero kmers remaining after culling! Try a lower coverage cutoff -c. \n")
@@ -111,24 +113,24 @@ def main(args):
     sys.stderr.write("Classifying\n")
     path_results = wdbg.classify(seqs, seqsh, args.min_kmer_prop, args.top_seed_frac, args.debug_query, args.low_mem)
     results = path_results[:args.return_best_n]
-    results = [(sr.index, sr.est_pid, sr.score) for sr in results if sr.score != -1]
+    results = [(sr.index, sr.est_pid, sr.score, sr.raw_weight_total) for sr in results if sr.score != -1]
     if len(results) == 0:
         sys.stderr.write("No hits. Try a lower -m threshold\n")
         sys.exit(1)
 
     # Output results
     if args.return_seqs == True:
-        for c, est_pid, score in results:
+        for c, est_pid, score, raw_weight_total in results:
             if score != -1:
                 print(seqsh[c])
                 print(seqs[c])
     elif args.output_prefix != None:
         scores_outf = open(args.output_prefix + ".out", "w")
-        for c, est_pid, score in results:
+        for c, est_pid, score, raw_weight_total in results:
             if score != -1:
                 slen = len(seqs[c])
                 mean = str(score/slen)
-                scores_outf.write(str(est_pid) + "\t" + str(score) + "\t" + str(slen)+"\t" +str(mean) + "\t"+ str(nreads) + "\t"+seqsh[c] + "\n")
+                scores_outf.write(str(est_pid) + "\t" + str(score) + "\t" + str(raw_weight_total) + "\t" + str(slen)+"\t" +str(mean) + "\t"+ str(nreads) + "\t"+seqsh[c] + "\n")
         scores_outf.close()
         seqs_outf = open(args.output_prefix + ".fa", "w")
         for c, est_pid, score in results:
@@ -137,11 +139,11 @@ def main(args):
                 seqs_outf.write(seqs[c]+"\n")
         seqs_outf.close()
     else:
-         for c, est_pid, score in results:
+         for c, est_pid, score, raw_weight_total in results:
             if score != -1:
                 slen = len(seqs[c])
                 mean = str(score/slen)
-                print(str(est_pid) + "\t" + str(score)+"\t"+str(slen)+"\t" +str(mean) + "\t"+ str(nreads) + "\t"+seqsh[c])
+                print(str(est_pid) + "\t" + str(score)+"\t"+ str(raw_weight_total)+"\t"+str(slen)+"\t" +str(mean) + "\t"+ str(nreads) + "\t"+seqsh[c])
 
 if __name__ == '__main__':
     # Parse arguments
