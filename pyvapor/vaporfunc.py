@@ -68,7 +68,7 @@ def parse_and_prefilter(fqs, dbkmers, threshold, k):
         f.close()
     return reads, nraw
 
-def parse_fasta_uniq(fasta, filter_Ns=True):
+def parse_fasta_uniq(fasta, filter_N):
     """ Gets unique sequences from a fasta, with filtering of Ns"""
     tmph = ""
     tmps = ""
@@ -84,7 +84,7 @@ def parse_fasta_uniq(fasta, filter_Ns=True):
                 continue
             elif l[0] == ">":
                 if tmps not in sseen and li > 0:
-                    if ((filter_Ns == True) and "N" not in tmps) or filter_Ns == False:
+                    if ((filter_N == True) and "N" not in tmps) or filter_N == False:
                         hs.append(tmph)
                         ss.append(tmps) 
                         sseen.add(tmps)
@@ -94,7 +94,7 @@ def parse_fasta_uniq(fasta, filter_Ns=True):
                 tmps += l
     hs.append(tmph)
     ss.append(tmps)
-    return hs, ss 
+    return hs, ss
 
 def subsample(reads, n):
     """ Takes a sample of n from reads """
