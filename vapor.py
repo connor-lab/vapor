@@ -49,9 +49,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
 
+from ctypes.wintypes import BOOLEAN
 import sys
 import argparse
 import os
+from xmlrpc.client import boolean
 import pyvapor as vp
 
 def blockErr():
@@ -67,8 +69,10 @@ def main(args):
         sys.stderr.write("WARNING: kmer sizes of less than 21 can result in contaminating sequence carryover, which may affect results. Only do this if you know your sample is pure, or have increased the filtering threshold -t sufficiently. Refer to the docs for details. \n")
 
     sys.stderr.write("Loading database sequences\n")
-    seqsh, seqs = vp.parse_fasta_uniq(args.fa)
+    seqsh, seqs = vp.parse_fasta_uniq(args.fa, args.filter_N)
     sys.stderr.write("Got %d unique sequences\n" % len(seqs))
+    if args.filter_N == False:
+        sys.stderr.write("WARNING: I WONT TELL YOU WHAT IS AMISS\n")
 
     # Get database kmers for filtering
     sys.stderr.write("Getting database kmers\n")
@@ -149,7 +153,6 @@ if __name__ == '__main__':
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--return_seqs", action="store_true")
     group.add_argument("-o", "--output_prefix", type=str, help="Prefix to write full output to, stout by default", nargs='?', default=None)
-
     parser.add_argument("-q", "--quiet", action="store_true", default=False)
     parser.add_argument("--return_best_n", type=int, default=1)
     parser.add_argument("-m", "--min_kmer_prop", type=float, help="Minimum proportion of matched kmers allowed for queries [default=0.1]", nargs='?', default=0.1)
@@ -164,6 +167,7 @@ if __name__ == '__main__':
     parser.add_argument("--nocache", action="store_true", default=False)
     parser.add_argument("-v", "--version", action="store_true", default=False)
     parser.add_argument("--low_mem", action="store_true", default=False)
+    parser.add_argument("--filter_N", "-n", action="store_true")
 
     if len(sys.argv)==1:
         parser.print_help(sys.stderr)
